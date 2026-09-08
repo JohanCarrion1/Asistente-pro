@@ -1,0 +1,9 @@
+.buildozer/
+bin/
+__pycache__/
+*.pyc
+*.pyo
+backend/config.py
+.env
+.DS_Store
+*.log
