@@ -11,18 +11,13 @@ workflows:
       - name: Accept ALL Android licenses
         script: |
           mkdir -p $ANDROID_HOME/licenses
-          # Aceptar TODAS las licencias automáticamente
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
-          # También crear los archivos de licencia manualmente
-          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> $ANDROID_HOME/licenses/android-sdk-license
-          echo "84831b9409646a918e30573bab4c9c91346d8abd" >> $ANDROID_HOME/licenses/android-sdk-preview-license
-          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
-          echo "8933bad161af4178b1185d1a37fbf41ea5269c55" >> $ANDROID_HOME/licenses/android-sdk-license
-          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" >> $ANDROID_HOME/licenses/android-sdk-preview-license
-      - name: Install ALL build tools
+      - name: Install ONLY build-tools 30.0.3
         script: |
-          # Instalar TODAS las versiones que puedan ser necesarias
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "build-tools;30.0.3" "build-tools;37.0.0" "platforms;android-30" "platforms;android-33" "platform-tools" || true
+          # SOLO instalamos 30.0.3, NO 37.0.0
+          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "build-tools;30.0.3" "platforms;android-30" "platform-tools"
+          # Verificar que se instaló
+          ls $ANDROID_HOME/build-tools/
       - name: Install dependencies
         script: |
           pip3 install setuptools
@@ -30,7 +25,6 @@ workflows:
       - name: Build APK
         script: |
           cd $CM_BUILD_DIR
-          # Limpiar cualquier build anterior
           rm -rf .buildozer
           buildozer android debug
     artifacts:
