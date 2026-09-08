@@ -14,5 +14,3 @@ android.permissions = INTERNET,CAMERA,MICROPHONE,RECORD_AUDIO
 [buildozer]
 log_level = 2
 warn_on_root = 0
-pip.install_args = --break-system-packages
-pip.install_args = --break-system-packages
