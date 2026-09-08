@@ -30,39 +30,34 @@ jobs:
     - name: Install Android SDK
       uses: android-actions/setup-android@v3
     
-    - name: Accept licenses and install build-tools
+    - name: Accept licenses
       run: |
         mkdir -p $ANDROID_HOME/licenses
         echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
         echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
         echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
+        echo "8933bad161af4178b1185d1a37fbf41ea5269c55" >> $ANDROID_HOME/licenses/android-sdk-license
         yes | sdkmanager --licenses || true
-        sdkmanager "build-tools;30.0.3" "platforms;android-30" "platform-tools"
     
-    - name: Patch Buildozer to force build-tools 30.0.3
+    - name: Install build-tools in Buildozer's SDK folder
       run: |
-        # Encontrar la ruta de buildozer
-        BUILDORIZER_SITE_PACKAGES=$(python3 -c "import site; print(site.getsitepackages()[0])")
-        BUILDORIZER_ANDROID="${BUILDORIZER_SITE_PACKAGES}/buildozer/targets/android.py"
+        # ESTA ES LA CLAVE: instalar en la carpeta que Buildozer usa
+        BUILDOZER_SDK="/home/runner/.buildozer/android/platform/android-sdk"
+        mkdir -p "$BUILDOZER_SDK/licenses"
         
-        echo "Patching Buildozer at: ${BUILDORIZER_ANDROID}"
+        # Copiar licencias a la carpeta de Buildozer
+        cp -r $ANDROID_HOME/licenses/* "$BUILDOZER_SDK/licenses/"
         
-        # Crear backup
-        cp "${BUILDORIZER_ANDROID}" "${BUILDORIZER_ANDROID}.bak"
+        # Instalar build-tools 37.0.0 en la carpeta de Buildozer
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root="$BUILDOZER_SDK" "build-tools;37.0.0" "platforms;android-33" "platform-tools"
         
-        # Reemplazar la línea que define build-tools
-        sed -i 's/self\.android_api, self\.android_minapi/"30.0.3", self.android_minapi/g' "${BUILDORIZER_ANDROID}"
-        
-        # También parchear la función get_available_packages
-        sed -i 's/("build-tools", build_tool_version)/("build-tools", "30.0.3")/g' "${BUILDORIZER_ANDROID}"
-        
-        echo "Buildozer patched successfully"
-        cat "${BUILDORIZER_ANDROID}" | grep -A2 -B2 "build-tools" || true
+        # Verificar
+        ls -la "$BUILDOZER_SDK/build-tools/"
     
     - name: Build APK
       run: |
         cd $GITHUB_WORKSPACE
-        rm -rf .buildozer
+        rm -rf .buildozer/android/platform/build*
         buildozer android debug
     
     - name: Upload APK
