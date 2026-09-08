@@ -1,0 +1,19 @@
+workflows:
+  kivy-android:
+    name: Asistente Pro
+    instance_type: mac_mini_m1
+    max_build_duration: 60
+    environment:
+      vars:
+        APP_NAME: AsistentePro
+        PACKAGE_DOMAIN: org.asistentepro
+    scripts:
+      - name: Install dependencies
+        script: |
+          pip3 install buildozer cython
+      - name: Build APK
+        script: |
+          cd $CM_BUILD_DIR
+          buildozer android debug
+    artifacts:
+      - buildozer/bin/*.apk
