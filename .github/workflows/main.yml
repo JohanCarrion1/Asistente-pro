@@ -21,48 +21,39 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y build-essential libffi-dev libssl-dev libjpeg-dev zlib1g-dev autoconf automake libtool pkg-config openjdk-17-jdk wget unzip
+        sudo apt-get install -y \
+          build-essential \
+          libffi-dev \
+          libssl-dev \
+          libjpeg-dev \
+          zlib1g-dev \
+          autoconf \
+          automake \
+          libtool \
+          pkg-config \
+          openjdk-17-jdk \
+          wget \
+          unzip
     
     - name: Install Buildozer
       run: |
         pip install buildozer==1.5.0 cython==0.29.36 setuptools
     
-    - name: Install Android SDK globally
+    - name: Set JAVA_HOME
       run: |
-        # Instalar SDK global primero
-        mkdir -p $ANDROID_HOME
-        cd /tmp
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
-        unzip -q commandlinetools-linux-9477386_latest.zip
-        mkdir -p $ANDROID_HOME/cmdline-tools/latest
-        mv cmdline-tools $ANDROID_HOME/cmdline-tools/latest
-        rm commandlinetools-linux-9477386_latest.zip
-        
-        # Aceptar licencias
-        mkdir -p $ANDROID_HOME/licenses
-        echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > $ANDROID_HOME/licenses/android-sdk-license
-        echo "84831b9409646a918e30573bab4c9c91346d8abd" > $ANDROID_HOME/licenses/android-sdk-preview-license
-        echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> $ANDROID_HOME/licenses/android-sdk-license
-        
-        # Instalar componentes necesarios
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_HOME "platform-tools" "platforms;android-33" "build-tools;33.0.0" "cmdline-tools;latest" "tools"
+        echo "JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64" >> $GITHUB_ENV
+        echo "PATH=$JAVA_HOME/bin:$PATH" >> $GITHUB_ENV
     
-    - name: Copy SDK to Buildozer's expected location
-      run: |
-        # Copiar el SDK completo a donde Buildozer lo espera
-        BUILDOZER_SDK="/home/runner/.buildozer/android/platform/android-sdk"
-        mkdir -p "$BUILDOZER_SDK"
-        cp -r $ANDROID_HOME/* "$BUILDOZER_SDK/"
-        
-        # Verificar que sdkmanager existe
-        ls -la "$BUILDOZER_SDK/cmdline-tools/latest/bin/"
-        ls -la "$BUILDOZER_SDK/build-tools/"
-    
-    - name: Build APK
+    - name: Build APK with verbose logging
       run: |
         cd $GITHUB_WORKSPACE
-        rm -rf .buildozer/android/platform/build*
+        rm -rf .buildozer
+        # Ejecutar buildozer con log_level=2 para ver errores detallados
+        sed -i 's/log_level = 2/log_level = 2/g' buildozer.spec || true
         buildozer android debug
+      env:
+        ANDROID_HOME: /usr/local/lib/android/sdk
+        ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
     
     - name: Upload APK
       uses: actions/upload-artifact@v4
