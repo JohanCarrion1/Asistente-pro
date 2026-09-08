@@ -10,6 +10,7 @@ android.api = 30
 android.minapi = 21
 android.archs = arm64-v8a,armeabi-v7a
 android.permissions = INTERNET,CAMERA,MICROPHONE,RECORD_AUDIO
+android.build_tools_version = 30.0.3
 
 [buildozer]
 log_level = 2
