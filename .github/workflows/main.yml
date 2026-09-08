@@ -8,54 +8,20 @@ on:
 jobs:
   build-apk:
     runs-on: ubuntu-latest
+    container: kivy/kivy:latest
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
     
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
-    
-    - name: Install system dependencies
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y \
-          build-essential \
-          libffi-dev \
-          libssl-dev \
-          libjpeg-dev \
-          zlib1g-dev \
-          autoconf \
-          automake \
-          libtool \
-          pkg-config \
-          openjdk-17-jdk \
-          wget \
-          unzip
-    
-    - name: Install Buildozer 1.4.0
-      run: |
-        pip install buildozer==1.4.0 cython==0.29.36 setuptools
-    
-    - name: Patch Buildozer to force build-tools 30.0.3
-      run: |
-        BUILDORIZER_ANDROID=$(python3 -c "import buildozer.targets.android as m; print(m.__file__)")
-        echo "Patching: $BUILDORIZER_ANDROID"
-        sed -i 's/"build-tools", self\.android_api/"build-tools", "30.0.3"/g' "$BUILDORIZER_ANDROID"
-        sed -i "s/'build-tools', self\.android_api/'build-tools', '30.0.3'/g" "$BUILDORIZER_ANDROID"
-        grep -n "build-tools" "$BUILDORIZER_ANDROID" | head -5
-    
-    - name: Set JAVA_HOME
-      run: |
-        echo "JAVA_HOME=/usr/lib/jvm/temurin-17-jdk-amd64" >> $GITHUB_ENV
-        echo "PATH=$JAVA_HOME/bin:$PATH" >> $GITHUB_ENV
+        sudo apt-get install -y build-essential libffi-dev libssl-dev libjpeg-dev zlib1g-dev autoconf automake libtool pkg-config openjdk-17-jdk
     
     - name: Build APK
       run: |
         cd $GITHUB_WORKSPACE
-        rm -rf .buildozer
         buildozer android debug
     
     - name: Upload APK
