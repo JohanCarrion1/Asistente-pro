@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-if git ls-files | rg -i '(^|/)(buildozer\.spec|requirements\.txt|.*\.py)$'; then
+if [[ -n "$(git ls-files '*.py' 'buildozer.spec' 'requirements.txt')" ]]; then
   echo 'ERROR: el repositorio activo aún contiene el runtime anterior.' >&2
   exit 1
 fi

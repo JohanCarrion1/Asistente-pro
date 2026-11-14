@@ -60,9 +60,9 @@ de instalación/actualización/arranque, menú, teclado, batería e historial en
 También comprueba coexistencia con el APK 2.0 cuando su artefacto sigue disponible.
 El APK se publica **después** de pasar la prueba en el dispositivo virtual.
 
-La firma de distribución de pruebas tiene la huella SHA-256
-`305170c9d2d00d1739c9e1ce6f0d91f69707a2a816ed1a76de2c976d66027895`.
-El flujo recupera el keystore existente y bloquea la publicación si falta o cambia.
+La firma de distribución de pruebas usa una ruta explícita y la huella SHA-256
+registrada en [`ci/signing.sha256`](ci/signing.sha256). Se establece una sola vez
+para esta nueva identidad; después el flujo bloquea la publicación si falta o cambia.
 Para mantenimiento a largo plazo el propietario debe respaldar ese keystore en un
 almacén de secretos: la conexión usada en esta reconstrucción no permite administrar
 secretos de Actions. Nunca se guarda una clave privada de firma en el repositorio.

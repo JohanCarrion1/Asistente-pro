@@ -1,6 +1,7 @@
 .gradle/
 .kotlin/
 .idea/
+.ci-signing/
 build/
 local.properties
 *.apk
