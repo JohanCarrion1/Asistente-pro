@@ -21,6 +21,10 @@ if [[ -f "$RUNNER_TEMP/asistente-v3/AsistentePro-Nativo-3.0.1.apk" ]]; then
   adb install --no-streaming -r "$RUNNER_TEMP/asistente-v3/AsistentePro-Nativo-3.0.1.apk" | tee "$report/install-version-3.txt"
 fi
 adb install --no-streaming -r "$RUNNER_TEMP/xylon-v4/Xylon-4.0.0.apk" | tee "$report/install-version-4.txt"
+adb install --no-streaming -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk | tee "$report/install-test-runner.txt"
+# Seed through 4.0's existing engine/store APIs before replacing the installed APK.
+adb shell am instrument -w -r -e class 'org.asistentepro.asistentepro.CredentialRestartTest#seed' app.asistentepro.android.test/androidx.test.runner.AndroidJUnitRunner | tee "$report/credentials-before-upgrade.txt"
+grep -Eq '^OK \(1 test\)' "$report/credentials-before-upgrade.txt"
 adb shell df -h /data | tee "$report/device-storage.txt"
 adb install --no-streaming -r verification-app/build/outputs/apk/debug/verification-app-debug.apk | tee "$report/install-test-fixture.txt"
 # Google images may already contain the real YouTube. Keep this test deterministic
@@ -29,11 +33,12 @@ if adb shell pm list packages com.google.android.youtube | grep -q 'com.google.a
   adb shell pm disable-user --user 0 com.google.android.youtube | tee "$report/disable-preinstalled-youtube.txt"
 fi
 adb install --no-streaming -r app/build/outputs/apk/debug/app-debug.apk | tee "$report/install-native.txt"
+adb shell am instrument -w -r -e class 'org.asistentepro.asistentepro.CredentialRestartTest#verifyAfterProcessDeath' app.asistentepro.android.test/androidx.test.runner.AndroidJUnitRunner | tee "$report/credentials-after-upgrade.txt"
+grep -Eq '^OK \(1 test\)' "$report/credentials-after-upgrade.txt"
 adb install --no-streaming -r app/build/outputs/apk/debug/app-debug.apk | tee "$report/update-native.txt"
 adb shell am start -W -n app.asistentepro.android/org.asistentepro.asistentepro.MainActivity | tee "$report/start-native.txt"
 adb shell pidof app.asistentepro.android | tee "$report/process.txt"
 adb shell pm list packages | grep -F 'asistentepro' | tee "$report/packages-coexist.txt"
-adb install --no-streaming -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk | tee "$report/install-test-runner.txt"
 sha256sum app/build/outputs/apk/debug/app-debug.apk > "$report/tested-apk.sha256"
 adb shell am instrument -w -r -e class org.asistentepro.asistentepro.InstalledAppTest app.asistentepro.android.test/androidx.test.runner.AndroidJUnitRunner | tee "$report/instrumentation.txt"
 grep -Eq '^OK \(11 tests\)' "$report/instrumentation.txt"

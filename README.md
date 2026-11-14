@@ -126,12 +126,14 @@ No hay un servicio web o runtime Python/Kivy/Buildozer en el repositorio ni en e
 Actions publica el APK únicamente después de superar compilación, pruebas de contratos
 HTTP de los cinco proveedores, comandos, renderizados, lint y pruebas instrumentadas en
 **Android 13, 14, 15, 16 y 17**. Los cinco entornos instalan el mismo APK y ejecutan
-once pruebas instrumentadas mediante AndroidJUnitRunner y otras dos fases de persistencia
+once pruebas instrumentadas mediante AndroidJUnitRunner y otras cuatro fases de persistencia
 en procesos diferentes. Incluye instalación, actualización desde 4.0 y desde 3.0.1 cuando el
 artefacto anterior sigue disponible, arranque, teclado, historial, claves separadas,
 migración Groq, sesión del asistente del sistema y superposición desde fuera de la app.
-Las cinco claves y un historial de prueba se guardan, se fuerza el cierre real del proceso
-y se verifican de nuevo, incluyendo un PID distinto. También se comprueba la recuperación
+Las cinco claves y un historial de prueba se guardan usando el motor de la versión 4.0,
+se instala la actualización y se comprueba que siguen legibles. Se repite el guardado en
+la nueva versión, se fuerza el cierre real del proceso y se verifican de nuevo, incluyendo
+un PID distinto. También se comprueba la recuperación
 de una clave ilegible, la hora local con una clave configurada y los cambios reales de
 brillo/rotación y navegación Inicio mediante el servicio de Accesibilidad.
 Solo los emuladores desechables reciben permisos mediante comandos de CI; el APK
