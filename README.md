@@ -25,6 +25,11 @@ Se usan los protocolos nativos de Gemini (`generateContent`) y Anthropic (`messa
 y Chat Completions para Groq, OpenRouter y OpenAI. La app no incluye claves, créditos
 ni suscripciones. Una clave guardada se valida con el proveedor al enviar una consulta.
 La migración de la clave cifrada de Groq de la versión anterior es automática.
+El valor inicial de Groq es `openai/gpt-oss-120b`; los antiguos valores Llama de
+la versión 3 se actualizan porque Groq los retiró de sus cuentas normales.
+Se conserva cualquier modelo personalizado. Gemini usa `gemini-3.6-flash`.
+Referencias: [retiros de Groq](https://console.groq.com/docs/deprecations) y
+[sustitución de Gemini 3.5](https://ai.google.dev/gemini-api/docs/models/gemini-3.5-flash).
 
 ## Háblale a tu manera
 

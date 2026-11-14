@@ -47,8 +47,13 @@ class LocalStore(context: Context) {
         get() = preferences.getBoolean("read_aloud", false)
         set(value) { preferences.edit().putBoolean("read_aloud", value).apply() }
     var model: String
-        get() = preferences.getString("model_${provider.name}", null)
-            ?: (if (provider == AiProvider.Groq) preferences.getString("model", null) else null) ?: provider.defaultModel
+        get() {
+            preferences.getString("model_${provider.name}", null)?.let { return it }
+            val legacy = if (provider == AiProvider.Groq) preferences.getString("model", null) else null
+            // The old app's default Llama models were retired for normal Groq
+            // accounts on 2026-08-16. Preserve explicit per-provider choices.
+            return if (legacy.isNullOrBlank() || legacy in setOf("llama-3.3-70b-versatile", "llama-3.1-8b-instant")) provider.defaultModel else legacy
+        }
         set(value) { preferences.edit().putString("model_${provider.name}", value).apply() }
     fun conversations(): List<Conversation> = runCatching {
         val array = JSONArray(preferences.getString("conversations", "[]"))

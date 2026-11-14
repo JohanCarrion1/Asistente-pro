@@ -145,7 +145,10 @@ class InstalledAppTest {
         compose.waitUntil(20000) { XylonVoiceService.isReady }
         device.pressHome(); device.waitForIdle()
         device.pressKeyCode(android.view.KeyEvent.KEYCODE_ASSIST)
-        assertTrue("Assistant session did not show after the assist key", device.wait(Until.hasObject(By.text("Xylon")), 12000))
+        // The launcher may already display an icon labelled Xylon. Wait for a
+        // control unique to our session instead of mistaking that icon for it.
+        assertTrue("Assistant session did not show after the assist key", device.wait(Until.hasObject(By.desc("Cerrar superposición")), 20000))
+        assertTrue(device.hasObject(By.text("Xylon")))
         assertTrue(device.hasObject(By.text("Hablar")))
         capture("08-asistente-del-sistema")
         device.findObject(By.desc("Cerrar superposición"))?.click()
@@ -162,6 +165,13 @@ class InstalledAppTest {
             preferences.edit().remove("key_Groq").putString("groq_key", encrypted).commit()
             assertEquals("gsk_migration_test_not_real_12345678", store.apiKey(AiProvider.Groq))
             assertEquals("", store.apiKey(AiProvider.Gemini))
+            preferences.edit().remove("model_Groq").putString("model", "llama-3.3-70b-versatile").commit()
+            assertEquals(AiProvider.Groq.defaultModel, store.model)
+            preferences.edit().putString("model", "custom-legacy-model").commit()
+            assertEquals("custom-legacy-model", store.model)
+            store.model = "explicit-provider-model"
+            assertEquals("explicit-provider-model", store.model)
+            preferences.edit().remove("model").remove("model_Groq").commit()
             store.deleteKey()
         }
     }

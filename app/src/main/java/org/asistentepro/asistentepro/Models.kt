@@ -18,7 +18,7 @@ data class AssistantState(
     val error: String? = null,
     val notice: String? = null,
     val keyDraft: String = "",
-    val model: String = "llama-3.1-8b-instant",
+    val model: String = AiProvider.Groq.defaultModel,
     val provider: AiProvider = AiProvider.Groq,
     val configuredProviders: Set<AiProvider> = emptySet(),
     val handsFreeActive: Boolean = false,
