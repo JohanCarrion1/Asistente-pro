@@ -1,4 +1,4 @@
-name: Xylon - Android nativo verificado
+name: Xylon - Android 13 a 17 verificado
 on:
   push:
     branches: [main]
@@ -11,9 +11,10 @@ concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  android:
+  build:
+    name: Compilar Xylon y probar las APIs
     runs-on: ubuntu-22.04
-    timeout-minutes: 45
+    timeout-minutes: 25
     env:
       ASISTENTE_KEYSTORE: ${{ github.workspace }}/.ci-signing/debug.keystore
     steps:
@@ -31,31 +32,71 @@ jobs:
           path: .speech-cache/
           key: xylon-spanish-speech-09b239888f633ef2
       - uses: actions/cache/restore@v4
-        id: signing
         with:
           path: .ci-signing/debug.keystore
           key: asistente-native-v3-signing-v1
-      - name: Comprobar proyecto nativo y firma estable
+      - name: Verificar proyecto nativo y conservar la firma de la versión 3
         run: |
           bash ci/verify-native.sh
           bash ci/verify-signing.sh
-      - name: Conservar la identidad nativa
-        if: steps.signing.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
-        with:
-          path: .ci-signing/debug.keystore
-          key: asistente-native-v3-signing-v1
-      - name: Compilar y ejecutar pruebas y capturas
+      - name: Compilar, probar contratos de IA, renderizar y analizar Android
         run: |
           chmod +x gradlew
           ./gradlew :app:recordPaparazziDebug :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :verification-app:assembleDebug --console=plain --stacktrace
           bash ci/verify-signing.sh app/build/outputs/apk/debug/app-debug.apk
-      - name: Obtener APK anterior para comprobar coexistencia
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh run download 43547538450 --name asistente-pro-apk --dir "$RUNNER_TEMP/asistente-v2"
-      - name: Obtener Asistente Pro 3 para verificar actualización a Xylon
+      - name: Guardar el mismo APK y los ejecutables de prueba para los cinco Android
+        uses: actions/upload-artifact@v4
+        with:
+          name: xylon-build-bundle
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+            verification-app/build/outputs/apk/debug/verification-app-debug.apk
+            app/build/signing-public.sha256
+          if-no-files-found: error
+          retention-days: 7
+      - name: Guardar informes de compilación y capturas renderizadas
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xylon-build-reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+            app/src/test/snapshots/images/
+          retention-days: 30
+  android:
+    name: Android ${{ matrix.android }}
+    needs: build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - android: '13'
+            api: '33'
+          - android: '14'
+            api: '34'
+          - android: '15'
+            api: '35'
+          - android: '16'
+            api: '36'
+          - android: '17'
+            api: '37.0'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: 'platform-tools'
+      - uses: actions/download-artifact@v4
+        with:
+          name: xylon-build-bundle
+      - name: Obtener versión 3 para comprobar la actualización
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -65,68 +106,61 @@ jobs:
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-      - name: Instalar, actualizar, arrancar y navegar en Android
+      - name: Instalar, actualizar, probar voz, IA configurada y superposición
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 30
-          target: default
-          arch: x86_64
-          profile: pixel_3a
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
-          script: bash ci/android-device-check.sh
-      - name: Verificar también Android 15
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: 35
+          api-level: ${{ matrix.api }}
+          system-image-api-level: ${{ matrix.api }}
           target: google_apis
           arch: x86_64
           profile: pixel_3a
-          avd-name: asistente-api35
-          disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
-          script: bash ci/android-device-check.sh
-      - name: Liberar memoria antes del emulador de Android 17
-        run: ./gradlew --stop
-      - name: Verificar también Android 17
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: '37.0'
-          system-image-api-level: '37.0'
-          target: google_apis
-          arch: x86_64
-          profile: pixel_3a
-          avd-name: asistente-api37
-          disk-size: '8G'
+          avd-name: xylon-api${{ matrix.api }}
           ram-size: '4096'
           heap-size: '512'
+          disk-size: '8G'
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           script: bash ci/android-device-check.sh
-      - name: Preparar APK comprobado
-        run: |
-          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Xylon-4.0.0.apk
-          cd app/build/outputs/apk/debug
-          sha256sum Xylon-4.0.0.apk > Xylon-4.0.0.apk.sha256
-      - name: Publicar APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: asistente-pro-apk
-          path: |
-            app/build/outputs/apk/debug/Xylon-4.0.0.apk
-            app/build/outputs/apk/debug/Xylon-4.0.0.apk.sha256
-          if-no-files-found: error
-          retention-days: 30
-      - name: Publicar evidencias de Android y pruebas
+      - name: Guardar pruebas y capturas de Android ${{ matrix.android }}
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: asistente-pro-pruebas-android
-          path: |
-            app/build/android-verification/
-            app/build/reports/
-            app/build/outputs/androidTest-results/
-            app/src/test/snapshots/images/
-            app/build/signing-public.sha256
+          name: xylon-android-${{ matrix.android }}-evidence
+          path: app/build/android-verification/
           if-no-files-found: ignore
+          retention-days: 30
+  publish:
+    name: Publicar APK tras pasar Android 13, 14, 15, 16 y 17
+    needs: [build, android]
+    runs-on: ubuntu-22.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: xylon-build-bundle
+      - name: Preparar APK verificado y su SHA-256
+        run: |
+          mkdir -p verified
+          cp app/build/outputs/apk/debug/app-debug.apk verified/Xylon-4.0.0.apk
+          cd verified
+          sha256sum Xylon-4.0.0.apk > Xylon-4.0.0.apk.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asistente-pro-apk
+          path: verified/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: xylon-android-*-evidence
+          path: evidence/
+      - uses: actions/download-artifact@v4
+        with:
+          name: xylon-build-reports
+          path: evidence/compilacion/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: asistente-pro-pruebas-android
+          path: evidence/
+          if-no-files-found: error
           retention-days: 30

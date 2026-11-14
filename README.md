@@ -5,7 +5,7 @@ Interfaz negra, icono propio azul/violeta, chat, menú lateral e historial local
 
 ## Instalar Xylon 4.0.0
 
-En **Actions → Xylon - Android nativo verificado**, abre la ejecución verde más reciente.
+En **Actions → Xylon - Android 13 a 17 verificado**, abre la ejecución verde más reciente.
 Descarga **asistente-pro-apk**, extrae el ZIP e instala **Xylon-4.0.0.apk**.
 El ZIP también incluye el SHA-256 del APK. Android 8.0 o posterior; ARM y x86.
 
@@ -80,7 +80,8 @@ No hay un servicio web o runtime Python/Kivy/Buildozer en el repositorio ni en e
 
 Actions publica el APK únicamente después de superar compilación, pruebas de contratos
 HTTP de los cinco proveedores, comandos, renderizados, lint y pruebas instrumentadas en
-**Android 11, Android 15 y Android 17**. Incluye instalación, actualización desde 3.0.1 cuando el
+**Android 13, 14, 15, 16 y 17**. Los cinco entornos instalan el mismo APK y ejecutan
+las ocho pruebas instrumentadas mediante AndroidJUnitRunner. Incluye instalación, actualización desde 3.0.1 cuando el
 artefacto anterior sigue disponible, arranque, teclado, historial, claves separadas,
 migración Groq, sesión del asistente del sistema y superposición desde fuera de la app.
 
@@ -96,7 +97,8 @@ solo en ese dispositivo desechable para seleccionar la app de verificación de f
 determinista. La prueba no sustituye una prueba acústica con un teléfono y una persona.
 
 El artefacto **asistente-pro-pruebas-android** incluye capturas, resultados y registros
-por versión de Android. Las conexiones HTTP se prueban con servidor simulado; el acceso
+por versión de Android, incluido el registro completo de instrumentación y el hash del
+APK probado. Las conexiones HTTP se prueban con servidor simulado; el acceso
 real a cada cuenta requiere una clave y un modelo válidos del usuario.
 
 En Android 17 se activa la comprobación estricta de audio en segundo plano y se verifica
