@@ -57,6 +57,14 @@ jobs:
           yes | .android-sdk/tools/bin/sdkmanager --sdk_root="$PWD/.android-sdk" --licenses > /dev/null
           set -o pipefail
           .android-sdk/tools/bin/sdkmanager --sdk_root="$PWD/.android-sdk" 'platform-tools' 'platforms;android-33' 'build-tools;33.0.2' 'build-tools;30.0.3'
+      - name: Conservar compilacion nativa
+        uses: actions/cache@v4
+        with:
+          path: |
+            .buildozer
+            ~/.buildozer
+          key: asistente-native-v1-${{ hashFiles('buildozer.spec') }}
+          restore-keys: asistente-native-v1-
       - name: Compilar APK
         run: |
           set -o pipefail

@@ -8,7 +8,7 @@ source.dir = .
 source.include_exts = py,kv,png,jpg,jpeg,json,mp3,wav,ogg,xml
 version = 1.0.1
 
-requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0,requests==2.32.3,charset-normalizer==3.3.2,urllib3==2.2.2,idna==3.7,certifi,flask==2.3.3,werkzeug==2.3.8,jinja2==3.1.6,markupsafe==2.1.5,itsdangerous==2.2.0,click==8.1.7,blinker==1.8.2
+requirements = python3==3.11.5,hostpython3==3.11.5,kivy==2.3.0,requests==2.32.3,charset-normalizer==3.3.2,urllib3==2.2.2,idna==3.7,certifi,flask==2.2.5,werkzeug==2.3.8,jinja2==3.1.6,markupsafe==2.1.5,itsdangerous==2.2.0,click==8.1.7,blinker==1.8.2
 
 orientation = portrait
 
