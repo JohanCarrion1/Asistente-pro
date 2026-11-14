@@ -73,7 +73,7 @@ No hay un servicio web o runtime Python/Kivy/Buildozer en el repositorio ni en e
 
 Actions publica el APK únicamente después de superar compilación, pruebas de contratos
 HTTP de los cinco proveedores, comandos, renderizados, lint y pruebas instrumentadas en
-**Android 11 y Android 15**. Incluye instalación, actualización desde 3.0.1 cuando el
+**Android 11, Android 15 y Android 17**. Incluye instalación, actualización desde 3.0.1 cuando el
 artefacto anterior sigue disponible, arranque, teclado, historial, claves separadas,
 migración Groq, sesión del asistente del sistema y superposición desde fuera de la app.
 
@@ -81,11 +81,19 @@ La prueba de voz decodifica un audio español sintético real con Vosk; después
 esa hipótesis al mismo controlador utilizado por el micrófono y comprueba que abre una
 app de verificación independiente sobre el launcher. Esa app se llama «YouTube (prueba)»
 y **solo se instala en los emuladores**; no forma parte del APK distribuido ni suplanta
-YouTube. La prueba no sustituye una prueba acústica con un teléfono y una persona.
+YouTube. Si la imagen del emulador trae YouTube preinstalado, el flujo lo desactiva
+solo en ese dispositivo desechable para seleccionar la app de verificación de forma
+determinista. La prueba no sustituye una prueba acústica con un teléfono y una persona.
 
 El artefacto **asistente-pro-pruebas-android** incluye capturas, resultados y registros
 por versión de Android. Las conexiones HTTP se prueban con servidor simulado; el acceso
 real a cada cuenta requiere una clave y un modelo válidos del usuario.
+
+En Android 17 se activa la comprobación estricta de audio en segundo plano y se verifica
+que el volumen cambie realmente con Manos libres activo. El micrófono de ese modo se
+inicia con la app visible, dentro de un servicio de primer plano de tipo microphone.
+La compatibilidad de ejecución en Android 17 se prueba manteniendo compileSdk/targetSdk 35;
+no se declara que la app use las nuevas APIs exclusivas del SDK 37.
 
 ## Compilar
 

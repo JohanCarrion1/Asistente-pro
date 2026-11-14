@@ -117,6 +117,8 @@ class InstalledAppTest {
         val hypothesis = recognizedFixture()
         val text = org.json.JSONObject(hypothesis).getString("text")
         assertEquals(DeviceAction.OpenApp("youtube"), ActionRouter.parse(WakePhrase.extract(text)!!))
+        val audio = compose.activity.getSystemService(android.media.AudioManager::class.java)
+        compose.runOnIdle { audio.setStreamVolume(android.media.AudioManager.STREAM_MUSIC, 1, 0) }
         compose.runOnIdle { ContextCompat.startForegroundService(compose.activity, Intent(compose.activity, HandsFreeService::class.java)) }
         compose.waitUntil(30000) { engine.state.value.handsFreeStatus.contains("escucha local activa") }
         device.pressHome(); device.waitForIdle()
@@ -125,6 +127,8 @@ class InstalledAppTest {
         assertTrue(device.wait(Until.hasObject(By.text("Aurea")), 7000))
         capture("07-superposicion-y-app-abierta")
         assertTrue(engine.state.value.messages.any { it.text == "Abrí YouTube (prueba)." })
+        InstrumentationRegistry.getInstrumentation().runOnMainSync { engine.action(DeviceAction.Volume(true)) }
+        assertTrue("Background audio API did not change the volume", audio.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) > 1)
         device.findObject(By.desc("Cerrar superposición"))?.click()
         compose.activity.stopService(Intent(compose.activity, HandsFreeService::class.java))
         device.waitForIdle()
