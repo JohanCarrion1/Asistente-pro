@@ -23,7 +23,7 @@ android.ndk = 25b
 android.sdk_path = .android-sdk
 android.skip_update = True
 android.enable_androidx = True
-android.extra_manifest_application_arguments = android/manifest_application.xml
+p4a.hook = android/build_hook.py
 icon.filename = icons/icon.png
 source.exclude_dirs = tests,.git,.github,.android-sdk
 
