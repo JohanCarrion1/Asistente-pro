@@ -12,7 +12,7 @@ import org.vosk.android.RecognitionListener
 import org.vosk.android.SpeechService
 
 /** Supplies the local recognizer required by Android's default-assistant role. */
-class AureaRecognitionService : RecognitionService() {
+class XylonRecognitionService : RecognitionService() {
     private val main = Handler(Looper.getMainLooper())
     private var callback: Callback? = null
     private var speech: SpeechService? = null

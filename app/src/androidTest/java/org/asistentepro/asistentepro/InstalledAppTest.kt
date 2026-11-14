@@ -27,7 +27,7 @@ import java.util.concurrent.TimeUnit
 @RunWith(AndroidJUnit4::class)
 class InstalledAppTest {
     @get:Rule val compose = createAndroidComposeRule<MainActivity>()
-    private val engine get() = AureaRuntime.get(compose.activity).engine
+    private val engine get() = XylonRuntime.get(compose.activity).engine
     @Before fun cleanSession() {
         compose.runOnIdle {
             compose.activity.stopService(Intent(compose.activity, HandsFreeService::class.java))
@@ -105,12 +105,12 @@ class InstalledAppTest {
         error?.let { throw it }
         val recognizer = Recognizer(loaded!!, 16000f)
         try {
-            val bytes = InstrumentationRegistry.getInstrumentation().context.assets.open("aurea-open-youtube.pcm").use { it.readBytes() }
+            val bytes = InstrumentationRegistry.getInstrumentation().context.assets.open("xylon-open-youtube.pcm").use { it.readBytes() }
             recognizer.acceptWaveForm(bytes, bytes.size)
             return recognizer.finalResult
         } finally { recognizer.close() }
     }
-    @Test fun realOfflineAudioOpensAppFromOverlayOutsideAurea() {
+    @Test fun realOfflineAudioOpensAppFromOverlayOutsideXylon() {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.executeShellCommand("pm grant app.asistentepro.android android.permission.RECORD_AUDIO")
         device.executeShellCommand("appops set app.asistentepro.android SYSTEM_ALERT_WINDOW allow")
@@ -123,12 +123,12 @@ class InstalledAppTest {
         compose.waitUntil(30000) { engine.state.value.handsFreeStatus.contains("escucha local activa") }
         device.pressHome(); device.waitForIdle()
         InstrumentationRegistry.getInstrumentation().runOnMainSync { HandsFreeService.active!!.onResult(hypothesis) }
-        assertTrue("Target application was not opened from background", device.wait(Until.hasObject(By.pkg("app.aurea.verification.youtube").depth(0)), 12000))
-        assertTrue(device.wait(Until.hasObject(By.text("Aurea")), 7000))
+        assertTrue("Target application was not opened from background", device.wait(Until.hasObject(By.pkg("app.xylon.verification.youtube").depth(0)), 12000))
+        assertTrue(device.wait(Until.hasObject(By.text("Xylon")), 7000))
         capture("07-superposicion-y-app-abierta")
         assertTrue(engine.state.value.messages.any { it.text == "Abrí YouTube (prueba)." })
         InstrumentationRegistry.getInstrumentation().runOnMainSync { engine.action(DeviceAction.Volume(true)) }
-        assertTrue("Background audio API did not change the volume", audio.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) > 1)
+        compose.waitUntil(5000) { audio.getStreamVolume(android.media.AudioManager.STREAM_MUSIC) > 1 }
         device.findObject(By.desc("Cerrar superposición"))?.click()
         compose.activity.stopService(Intent(compose.activity, HandsFreeService::class.java))
         device.waitForIdle()
@@ -139,10 +139,10 @@ class InstalledAppTest {
         val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
         device.executeShellCommand("appops set app.asistentepro.android SYSTEM_ALERT_WINDOW deny")
         device.executeShellCommand("cmd role add-role-holder android.app.role.ASSISTANT app.asistentepro.android")
-        compose.waitUntil(10000) { android.service.voice.VoiceInteractionService.isActiveService(compose.activity, android.content.ComponentName(compose.activity, AureaVoiceService::class.java)) }
+        compose.waitUntil(10000) { android.service.voice.VoiceInteractionService.isActiveService(compose.activity, android.content.ComponentName(compose.activity, XylonVoiceService::class.java)) }
         device.pressHome(); device.waitForIdle()
         device.pressKeyCode(android.view.KeyEvent.KEYCODE_ASSIST)
-        assertTrue("Assistant session did not show after the assist key", device.wait(Until.hasObject(By.text("Aurea")), 12000))
+        assertTrue("Assistant session did not show after the assist key", device.wait(Until.hasObject(By.text("Xylon")), 12000))
         assertTrue(device.hasObject(By.text("Hablar")))
         capture("08-asistente-del-sistema")
         device.findObject(By.desc("Cerrar superposición"))?.click()
@@ -169,7 +169,7 @@ class InstalledAppTest {
         val failure = java.util.concurrent.atomic.AtomicInteger(0)
         var speech: android.speech.SpeechRecognizer? = null
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            speech = android.speech.SpeechRecognizer.createSpeechRecognizer(compose.activity, android.content.ComponentName(compose.activity, AureaRecognitionService::class.java)).apply {
+            speech = android.speech.SpeechRecognizer.createSpeechRecognizer(compose.activity, android.content.ComponentName(compose.activity, XylonRecognitionService::class.java)).apply {
                 setRecognitionListener(object : android.speech.RecognitionListener {
                     override fun onReadyForSpeech(params: android.os.Bundle?) { ready.countDown() }
                     override fun onBeginningOfSpeech() = Unit

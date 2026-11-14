@@ -9,7 +9,7 @@
         <item name="android:colorAccent">#819FFF</item>
         <item name="android:windowActionModeOverlay">true</item>
     </style>
-    <style name="Theme.AureaSession" parent="android:style/Theme.Material.NoActionBar">
+    <style name="Theme.XylonSession" parent="android:style/Theme.Material.NoActionBar">
         <item name="android:windowIsTranslucent">true</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:colorAccent">#9CB4FF</item>

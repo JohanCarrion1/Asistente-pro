@@ -34,7 +34,7 @@ class DeviceCommander(private val context: Context, private val engine: Assistan
                 DeviceAction.Camera -> { launch(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)); engine.deviceResult("Abrí la cámara.") }
                 DeviceAction.Wifi -> { launch(Intent(Settings.ACTION_WIFI_SETTINGS)); engine.deviceResult("Abrí los ajustes de Wi-Fi.") }
                 DeviceAction.Sms -> { launch(Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:"))); engine.deviceResult("Abrí Mensajes. Elige el destinatario y confirma el envío.") }
-                DeviceAction.Help -> engine.deviceResult("Soy Aurea. Puedes decir «Aurea, abre YouTube», consultar la batería, cambiar el volumen, usar la linterna o crear alarmas. Activa Manos libres en Ajustes para llamarme fuera de la app, sin registrar tu voz. Para preguntas generales elige y configura tu proveedor de IA.")
+                DeviceAction.Help -> engine.deviceResult("Soy Xylon. Puedes decir «Xylon, abre YouTube», consultar la batería, cambiar el volumen, usar la linterna o crear alarmas. Activa Manos libres en Ajustes para llamarme fuera de la app, sin registrar tu voz. Para preguntas generales elige y configura tu proveedor de IA.")
                 is DeviceAction.Volume -> {
                     val audio = context.getSystemService(AudioManager::class.java)
                     audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, if (action.raise) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
@@ -55,7 +55,7 @@ class DeviceCommander(private val context: Context, private val engine: Assistan
                 }
                 is DeviceAction.Alarm -> {
                     launch(Intent(AlarmClock.ACTION_SET_ALARM).putExtra(AlarmClock.EXTRA_HOUR, action.hour).putExtra(AlarmClock.EXTRA_MINUTES, action.minute)
-                        .putExtra(AlarmClock.EXTRA_MESSAGE, "Aurea").putExtra(AlarmClock.EXTRA_SKIP_UI, false))
+                        .putExtra(AlarmClock.EXTRA_MESSAGE, "Xylon").putExtra(AlarmClock.EXTRA_SKIP_UI, false))
                     engine.deviceResult("Abrí Reloj. Revisa y confirma la alarma.")
                 }
                 DeviceAction.Battery -> {
@@ -64,7 +64,7 @@ class DeviceCommander(private val context: Context, private val engine: Assistan
                 }
                 is DeviceAction.Timer -> {
                     launch(Intent(AlarmClock.ACTION_SET_TIMER).putExtra(AlarmClock.EXTRA_LENGTH, action.seconds)
-                        .putExtra(AlarmClock.EXTRA_MESSAGE, "Aurea").putExtra(AlarmClock.EXTRA_SKIP_UI, false))
+                        .putExtra(AlarmClock.EXTRA_MESSAGE, "Xylon").putExtra(AlarmClock.EXTRA_SKIP_UI, false))
                     engine.deviceResult("Abrí Reloj con un temporizador de ${action.seconds} segundos. Confírmalo allí.")
                 }
             }

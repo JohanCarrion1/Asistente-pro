@@ -11,21 +11,29 @@ import android.speech.tts.UtteranceProgressListener
 import java.util.Locale
 
 /** One application-scoped engine keeps app, overlay and assistant session in sync. */
-class AureaRuntime private constructor(context: Context) {
+class XylonRuntime private constructor(context: Context) {
     private val app = context.applicationContext as Application
     val engine = AssistantEngine(app)
     var foregroundLauncher: ((Intent) -> Unit)? = null
     var sessionLauncher: ((Intent) -> Unit)? = null
+    var cameraPermissionRequester: ((DeviceAction) -> Unit)? = null
     private val handler = Handler(Looper.getMainLooper())
     private var ready = false
     private var tts: TextToSpeech? = null
     private var pending: String? = null
     init {
-        engine.onDeviceAction = DeviceCommander(app, engine) { intent ->
+        val commander = DeviceCommander(app, engine) { intent ->
             check(!app.getSystemService(KeyguardManager::class.java).isKeyguardLocked) { "Desbloquea el teléfono" }
             val launcher = foregroundLauncher ?: sessionLauncher
             if (launcher != null) launcher(intent) else app.startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-        }::execute
+        }
+        engine.onDeviceAction = { action ->
+            if (action is DeviceAction.Torch && androidx.core.content.ContextCompat.checkSelfPermission(app, android.Manifest.permission.CAMERA) != android.content.pm.PackageManager.PERMISSION_GRANTED && cameraPermissionRequester != null) {
+                cameraPermissionRequester?.invoke(action)
+            } else if (foregroundLauncher == null && sessionLauncher == null && HandsFreeService.active != null) {
+                HandsFreeService.active?.showForAction { commander.execute(action) }
+            } else commander.execute(action)
+        }
         engine.onSpeak = ::speak
     }
     fun speak(text: String) {
@@ -44,12 +52,12 @@ class AureaRuntime private constructor(context: Context) {
             } }
         } else if (ready) {
             engine.phase(VoicePhase.Speaking)
-            tts?.speak(text.take(3500), TextToSpeech.QUEUE_FLUSH, null, "aurea-response")
+            tts?.speak(text.take(3500), TextToSpeech.QUEUE_FLUSH, null, "xylon-response")
         } else pending = text
     }
     fun stopSpeaking() { pending = null; tts?.stop(); if (engine.state.value.phase == VoicePhase.Speaking) engine.phase(VoicePhase.Idle) }
     companion object {
-        @Volatile private var instance: AureaRuntime? = null
-        fun get(context: Context): AureaRuntime = instance ?: synchronized(this) { instance ?: AureaRuntime(context).also { instance = it } }
+        @Volatile private var instance: XylonRuntime? = null
+        fun get(context: Context): XylonRuntime = instance ?: synchronized(this) { instance ?: XylonRuntime(context).also { instance = it } }
     }
 }

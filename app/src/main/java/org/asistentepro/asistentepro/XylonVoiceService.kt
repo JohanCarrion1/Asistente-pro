@@ -16,19 +16,19 @@ import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.*
 
-class AureaVoiceService : VoiceInteractionService()
+class XylonVoiceService : VoiceInteractionService()
 
-class AureaSessionService : VoiceInteractionSessionService() {
-    override fun onNewSession(args: Bundle?): VoiceInteractionSession = AureaSession(this)
+class XylonSessionService : VoiceInteractionSessionService() {
+    override fun onNewSession(args: Bundle?): VoiceInteractionSession = XylonSession(this)
 }
 
 /** System assistant gesture opens this card without taking over the foreground app. */
-class AureaSession(context: android.content.Context) : VoiceInteractionSession(context) {
-    private val runtime = AureaRuntime.get(context)
+class XylonSession(context: android.content.Context) : VoiceInteractionSession(context) {
+    private val runtime = XylonRuntime.get(context)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var speech: SpeechRecognizer? = null
     private var card: OverlayContent? = null
-    override fun onCreate() { setTheme(R.style.Theme_AureaSession); super.onCreate() }
+    override fun onCreate() { setTheme(R.style.Theme_XylonSession); super.onCreate() }
     override fun onCreateContentView(): View {
         val container = FrameLayout(context).apply { setPadding(16, 12, 16, 32) }
         card = OverlayContent(context, runtime, ::listen, ::hide)
@@ -45,12 +45,12 @@ class AureaSession(context: android.content.Context) : VoiceInteractionSession(c
     }
     private fun listen() {
         if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
-            runtime.engine.error("Abre Aurea y concede permiso de micrófono para hablar."); return
+            runtime.engine.error("Abre Xylon y concede permiso de micrófono para hablar."); return
         }
-        if (!SpeechRecognizer.isRecognitionAvailable(context)) { runtime.engine.error("Activa Manos libres en Aurea para usar el reconocimiento local sin un servicio de voz del sistema."); return }
+        if (!SpeechRecognizer.isRecognitionAvailable(context)) { runtime.engine.error("Activa Manos libres en Xylon para usar el reconocimiento local sin un servicio de voz del sistema."); return }
         if (HandsFreeService.active != null) { HandsFreeService.active?.listenNow(); return }
         speech?.destroy(); runtime.stopSpeaking()
-        speech = SpeechRecognizer.createSpeechRecognizer(context, android.content.ComponentName(context, AureaRecognitionService::class.java)).apply {
+        speech = SpeechRecognizer.createSpeechRecognizer(context, android.content.ComponentName(context, XylonRecognitionService::class.java)).apply {
             setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) { runtime.engine.phase(VoicePhase.Listening) }
                 override fun onBeginningOfSpeech() = Unit

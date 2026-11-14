@@ -17,7 +17,7 @@ import org.vosk.android.RecognitionListener
 import org.vosk.android.SpeechService
 
 class HandsFreeService : Service(), RecognitionListener {
-    private val runtime by lazy { AureaRuntime.get(this) }
+    private val runtime by lazy { XylonRuntime.get(this) }
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var speech: SpeechService? = null
     private var recognizer: Recognizer? = null
@@ -34,7 +34,7 @@ class HandsFreeService : Service(), RecognitionListener {
     override fun onCreate() {
         super.onCreate(); active = this
         overlay = AssistantOverlay(this, runtime, ::listenNow)
-        getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL, "Aurea · manos libres", NotificationManager.IMPORTANCE_LOW).apply {
+        getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(CHANNEL, "Xylon · manos libres", NotificationManager.IMPORTANCE_LOW).apply {
             description = "Escucha local activada por ti. Puedes detenerla en cualquier momento."
         })
         scope.launch { runtime.engine.state.collect { state ->
@@ -49,12 +49,12 @@ class HandsFreeService : Service(), RecognitionListener {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == STOP) { stopSelf(); return START_NOT_STICKY }
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED || !Settings.canDrawOverlays(this)) {
-            runtime.engine.error("Para activar Manos libres, concede micrófono y superposición desde Ajustes de Aurea."); stopSelf(); return START_NOT_STICKY
+            runtime.engine.error("Para activar Manos libres, concede micrófono y superposición desde Ajustes de Xylon."); stopSelf(); return START_NOT_STICKY
         }
         val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val stop = PendingIntent.getService(this, 1, Intent(this, HandsFreeService::class.java).setAction(STOP), PendingIntent.FLAG_IMMUTABLE)
-        val notification = NotificationCompat.Builder(this, CHANNEL).setSmallIcon(R.drawable.ic_brand).setContentTitle("Aurea te escucha")
-            .setContentText("Di «Aurea» · reconocimiento local · toca Detener para apagar")
+        val notification = NotificationCompat.Builder(this, CHANNEL).setSmallIcon(R.drawable.ic_brand).setContentTitle("Xylon te escucha")
+            .setContentText("Di «Xylon» · reconocimiento local · toca Detener para apagar")
             .setContentIntent(open).setOngoing(true).setSilent(true).addAction(0, "Detener", stop).build()
         try { ServiceCompat.startForeground(this, 70, notification, if (Build.VERSION.SDK_INT >= 30) ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE else 0) }
         catch (_: Exception) { runtime.engine.error("Android no permitió iniciar el micrófono. Activa Manos libres con la app abierta."); stopSelf(); return START_NOT_STICKY }
@@ -66,7 +66,7 @@ class HandsFreeService : Service(), RecognitionListener {
                 runCatching {
                     recognizer = Recognizer(model, 16000f)
                     speech = SpeechService(recognizer, 16000f).also { check(it.startListening(this)) { "Micrófono ocupado" } }
-                    starting = false; runtime.engine.handsFree(true, "Di «Aurea» · escucha local activa")
+                    starting = false; runtime.engine.handsFree(true, "Di «Xylon» · escucha local activa")
                 }.onFailure { onError(it as? Exception ?: Exception(it)) }
             }, ::onError)
         }
@@ -80,6 +80,7 @@ class HandsFreeService : Service(), RecognitionListener {
         overlay.show()
         main.postDelayed({ if (waitingUntil != 0L && SystemClock.elapsedRealtime() >= waitingUntil) { waitingUntil = 0; runtime.engine.phase(VoicePhase.Idle) } }, 12500)
     }
+    fun showForAction(action: () -> Unit) { overlay.show(); main.postDelayed({ if (!destroyed) action() }, 220) }
     private fun receive(json: String, partial: Boolean) {
         main.post {
             if (destroyed || muted || SystemClock.elapsedRealtime() < muteUntil) return@post
@@ -118,9 +119,9 @@ class HandsFreeService : Service(), RecognitionListener {
         super.onDestroy()
     }
     companion object {
-        const val STOP = "app.aurea.STOP"
-        const val SHOW = "app.aurea.SHOW"
-        private const val CHANNEL = "aurea-hands-free"
+        const val STOP = "app.xylon.STOP"
+        const val SHOW = "app.xylon.SHOW"
+        private const val CHANNEL = "xylon-hands-free"
         var active: HandsFreeService? = null; private set
     }
 }

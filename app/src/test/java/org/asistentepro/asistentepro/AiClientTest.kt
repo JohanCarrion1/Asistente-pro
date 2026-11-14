@@ -21,7 +21,7 @@ class AiClientTest {
                 val body = JSONObject(request.body.readUtf8())
                 assertEquals(4, body.getJSONArray("messages").length())
                 assertEquals("assistant", body.getJSONArray("messages").getJSONObject(2).getString("role"))
-                if (provider == AiProvider.OpenRouter) assertEquals("Aurea", request.getHeader("X-OpenRouter-Title"))
+                if (provider == AiProvider.OpenRouter) assertEquals("Xylon", request.getHeader("X-OpenRouter-Title"))
             }
         }
     }
@@ -67,6 +67,40 @@ class AiClientTest {
                 try { client.execute(provider, client.call(provider, "test", provider.defaultModel, history)); fail("Expected failure") }
                 catch (e: AssistantException) { assertTrue(e.message!!.contains("no devolvió texto")) }
             }
+        }
+    }
+    @Test fun naturalLanguageUsesNativeToolCallingWithEveryProvider() {
+        AiProvider.entries.forEach { provider ->
+            MockWebServer().use { server ->
+                val args = JSONObject().put("action", "open_app").put("app_name", "YouTube")
+                val response = when (provider) {
+                    AiProvider.Gemini -> JSONObject().put("candidates", org.json.JSONArray().put(JSONObject().put("content", JSONObject().put("parts", org.json.JSONArray().put(JSONObject().put("functionCall", JSONObject().put("name", PhoneTools.name).put("args", args)))))))
+                    AiProvider.Anthropic -> JSONObject().put("content", org.json.JSONArray().put(JSONObject().put("type", "tool_use").put("id", "test-tool").put("name", PhoneTools.name).put("input", args)))
+                    else -> JSONObject().put("choices", org.json.JSONArray().put(JSONObject().put("message", JSONObject().put("tool_calls", org.json.JSONArray().put(JSONObject().put("id", "test-tool").put("type", "function").put("function", JSONObject().put("name", PhoneTools.name).put("arguments", args.toString())))))))
+                }
+                server.enqueue(MockResponse().setBody(response.toString()))
+                val client = AiClient(OkHttpClient(), server.url("/chat").toString())
+                val question = "Me apetece ver mis vídeos; llévame a YouTube, por favor."
+                val result = client.reply(provider, client.call(provider, "test-key", provider.defaultModel, listOf(Message("1", question, true))))
+                assertEquals(DeviceAction.OpenApp("YouTube"), result.action)
+                assertEquals("", result.text)
+                val body = JSONObject(server.takeRequest().body.readUtf8())
+                assertTrue(body.has("tools")); assertTrue(body.toString().contains(question))
+                val definition = body.getJSONArray("tools").getJSONObject(0)
+                when (provider) {
+                    AiProvider.Gemini -> assertEquals(PhoneTools.name, definition.getJSONArray("functionDeclarations").getJSONObject(0).getString("name"))
+                    AiProvider.Anthropic -> assertEquals(PhoneTools.name, definition.getString("name"))
+                    else -> assertEquals(PhoneTools.name, definition.getJSONObject("function").getString("name"))
+                }
+            }
+        }
+    }
+    @Test fun plainAssistantTextCannotExecutePhoneActions() {
+        MockWebServer().use { server ->
+            server.enqueue(MockResponse().setBody("""{"choices":[{"message":{"content":"Abre YouTube"}}]}"""))
+            val client = AiClient(OkHttpClient(), server.url("/chat").toString())
+            val result = client.reply(AiProvider.Groq, client.call(AiProvider.Groq, "test", "test-model", history))
+            assertNull(result.action); assertEquals("Abre YouTube", result.text)
         }
     }
 }

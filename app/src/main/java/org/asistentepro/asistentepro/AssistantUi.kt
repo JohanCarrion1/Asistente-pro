@@ -56,7 +56,7 @@ data class AssistantCallbacks(
 )
 
 @Composable fun BrandImage(modifier: Modifier = Modifier) {
-    Image(painterResource(R.drawable.assistant_brand), "Identidad de Aurea", modifier.clip(RoundedCornerShape(18.dp)))
+    Image(painterResource(R.drawable.assistant_brand), "Identidad de Xylon", modifier.clip(RoundedCornerShape(18.dp)))
 }
 
 @Composable
@@ -74,7 +74,7 @@ fun AsistenteApp(state: AssistantState, events: AssistantCallbacks = AssistantCa
             ModalDrawerSheet(modifier = Modifier.fillMaxWidth(.85f).widthIn(max = 355.dp), drawerContainerColor = Color(0xFF16171E), drawerShape = RoundedCornerShape(topEnd = 30.dp, bottomEnd = 30.dp)) {
                 Row(Modifier.fillMaxWidth().padding(start = 22.dp, top = 18.dp, bottom = 20.dp), verticalAlignment = Alignment.CenterVertically) {
                     BrandImage(Modifier.size(46.dp)); Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) { Text("Tu espacio.", color = Cream, fontSize = 22.sp, fontWeight = FontWeight.Medium); Text("AUREA", color = Muted, fontSize = 10.sp, letterSpacing = 1.5.sp) }
+                    Column(Modifier.weight(1f)) { Text("Tu espacio.", color = Cream, fontSize = 22.sp, fontWeight = FontWeight.Medium); Text("XYLON", color = Muted, fontSize = 10.sp, letterSpacing = 1.5.sp) }
                     IconButton(onClick = { close() }) { Icon(Icons.Outlined.Close, "Cerrar menú", tint = Muted) }
                 }
                 NavigationDrawerItem(label = { Text("Nueva conversación") }, selected = false, icon = { Icon(Icons.Outlined.AddComment, null) }, onClick = { events.onNew(); close() }, modifier = Modifier.padding(horizontal = 14.dp))
@@ -115,7 +115,7 @@ fun AsistenteApp(state: AssistantState, events: AssistantCallbacks = AssistantCa
 @Composable private fun AssistantHeader(state: AssistantState, events: AssistantCallbacks, menu: () -> Unit) {
     Row(Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 14.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         IconButton(onClick = menu) { Icon(Icons.Outlined.Menu, "Abrir menú", tint = Cream, modifier = Modifier.size(26.dp)) }
-        Text(when (state.page) { Page.Assistant -> "Aurea"; Page.History -> "Conversaciones"; Page.Settings -> "Ajustes" }, color = Cream, fontSize = 24.sp, letterSpacing = (-.7).sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), maxLines = 1)
+        Text(when (state.page) { Page.Assistant -> "Xylon"; Page.History -> "Conversaciones"; Page.Settings -> "Ajustes" }, color = Cream, fontSize = 24.sp, letterSpacing = (-.7).sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f), maxLines = 1)
         if (state.page == Page.Assistant) {
             IconButton(onClick = { events.onReading(!state.readAloud) }) { Icon(if (state.readAloud) Icons.Outlined.VolumeUp else Icons.Outlined.VolumeOff, if (state.readAloud) "Desactivar lectura en voz alta" else "Activar lectura en voz alta", tint = if (state.readAloud) Mint else Muted, modifier = Modifier.size(22.dp)) }
             IconButton(onClick = { events.onPage(Page.Settings) }) { Icon(Icons.Outlined.Tune, "Abrir ajustes", tint = Muted, modifier = Modifier.size(22.dp)) }

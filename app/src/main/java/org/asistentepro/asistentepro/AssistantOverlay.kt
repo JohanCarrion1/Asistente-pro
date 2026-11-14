@@ -12,12 +12,12 @@ import android.view.WindowManager
 import android.widget.*
 
 /** Native, touchable card. It reads no data from the app underneath it. */
-class AssistantOverlay(private val context: Context, private val runtime: AureaRuntime, private val listen: () -> Unit) {
+class AssistantOverlay(private val context: Context, private val runtime: XylonRuntime, private val listen: () -> Unit) {
     private val manager = context.getSystemService(WindowManager::class.java)
     private var root: View? = null
     private var content: OverlayContent? = null
     fun show() {
-        if (!Settings.canDrawOverlays(context)) { runtime.engine.error("Activa «Mostrar sobre otras apps» en Ajustes de Aurea."); return }
+        if (!Settings.canDrawOverlays(context)) { runtime.engine.error("Activa «Mostrar sobre otras apps» en Ajustes de Xylon."); return }
         if (root != null) return
         val card = OverlayContent(context, runtime, listen, ::hide)
         val container = FrameLayout(context).apply { setPadding(dp(14), dp(12), dp(14), dp(32)); addView(card) }
@@ -32,7 +32,7 @@ class AssistantOverlay(private val context: Context, private val runtime: AureaR
     private fun dp(value: Int) = (value * context.resources.displayMetrics.density).toInt()
 }
 
-class OverlayContent(context: Context, private val runtime: AureaRuntime, listen: () -> Unit, close: () -> Unit) : LinearLayout(context) {
+class OverlayContent(context: Context, private val runtime: XylonRuntime, listen: () -> Unit, close: () -> Unit) : LinearLayout(context) {
     private val status: TextView
     private val response: TextView
     private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
@@ -42,8 +42,8 @@ class OverlayContent(context: Context, private val runtime: AureaRuntime, listen
         background = GradientDrawable(GradientDrawable.Orientation.TL_BR, intArrayOf(Color.rgb(31,34,53), Color.rgb(12,13,23))).apply { cornerRadius = dp(30).toFloat(); setStroke(dp(1), Color.rgb(110,125,213)) }
         elevation = dp(18).toFloat()
         val header = LinearLayout(context).apply { gravity = Gravity.CENTER_VERTICAL }
-        header.addView(ImageView(context).apply { setImageResource(R.drawable.assistant_brand); contentDescription = "Aurea" }, LayoutParams(dp(44), dp(44)))
-        header.addView(text("Aurea", 23f).apply { typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL); setPadding(dp(12),0,0,0) }, LayoutParams(0,dp(48),1f))
+        header.addView(ImageView(context).apply { setImageResource(R.drawable.assistant_brand); contentDescription = "Xylon" }, LayoutParams(dp(44), dp(44)))
+        header.addView(text("Xylon", 23f).apply { typeface = Typeface.create("sans-serif-medium", Typeface.NORMAL); setPadding(dp(12),0,0,0) }, LayoutParams(0,dp(48),1f))
         header.addView(Button(context).apply { text = "×"; contentDescription = "Cerrar superposición"; setTextColor(Color.WHITE); background = null; setOnClickListener { close() } }, LayoutParams(dp(46),dp(48)))
         addView(header)
         status = text("Te escucho", 12f, Color.rgb(161,183,255)).apply { setPadding(0,dp(12),0,dp(12)) }; addView(status)
@@ -58,7 +58,7 @@ class OverlayContent(context: Context, private val runtime: AureaRuntime, listen
         addView(actions)
     }
     fun update(state: AssistantState) {
-        status.text = when (state.phase) { VoicePhase.Listening -> "Te escucho · sin registrar tu voz"; VoicePhase.Thinking -> "${state.provider.title} está preparando la respuesta…"; VoicePhase.Speaking -> "Aurea está respondiendo"; else -> "A tu lado · ${state.provider.title}" }
-        response.text = state.error ?: state.messages.lastOrNull()?.text ?: state.notice ?: "Di «abre YouTube» o hazme una pregunta."
+        status.text = when (state.phase) { VoicePhase.Listening -> "Te escucho · sin registrar tu voz"; VoicePhase.Thinking -> "${state.provider.title} está preparando la respuesta…"; VoicePhase.Speaking -> "Xylon está respondiendo"; else -> "A tu lado · ${state.provider.title}" }
+        response.text = state.error ?: state.messages.lastOrNull()?.text ?: state.notice ?: "Dime qué necesitas, con tus propias palabras."
     }
 }

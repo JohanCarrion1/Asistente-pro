@@ -1,17 +1,17 @@
-# Aurea · Inteligencia a tu manera
+# Xylon · Inteligencia a tu manera
 
 Asistente Android nativo en **Kotlin y Jetpack Compose**, antes llamado Asistente Pro.
 Interfaz negra, icono propio azul/violeta, chat, menú lateral e historial local.
 
-## Instalar Aurea 4.0.0
+## Instalar Xylon 4.0.0
 
-En **Actions → Aurea - Android nativo verificado**, abre la ejecución verde más reciente.
-Descarga **asistente-pro-apk**, extrae el ZIP e instala **Aurea-4.0.0.apk**.
+En **Actions → Xylon - Android nativo verificado**, abre la ejecución verde más reciente.
+Descarga **asistente-pro-apk**, extrae el ZIP e instala **Xylon-4.0.0.apk**.
 El ZIP también incluye el SHA-256 del APK. Android 8.0 o posterior; ARM y x86.
 
 **Actualiza Asistente Pro 3.0.1 directamente**, conservando sus datos y su clave de Groq:
 se mantiene `app.asistentepro.android` y el mismo certificado de firma. El nuevo nombre
-que verás bajo el icono es **Aurea**. Las versiones antiguas con identificador
+que verás bajo el icono es **Xylon**. Las versiones antiguas con identificador
 `org.asistentepro.asistentepro` siguen siendo independientes.
 
 ## Elige tu proveedor de IA
@@ -26,19 +26,26 @@ y Chat Completions para Groq, OpenRouter y OpenAI. La app no incluye claves, cr�
 ni suscripciones. Una clave guardada se valida con el proveedor al enviar una consulta.
 La migración de la clave cifrada de Groq de la versión anterior es automática.
 
-## «Aurea, abre YouTube» sin registrar tu voz
+## Háblale a tu manera
 
-No hay entrenamiento de voz ni identificación de hablante. Puedes escribir o decir
-«Aurea, abra la aplicación YouTube», «abre Spotify», «cuánta batería tengo»,
-«enciende la linterna», «sube el volumen» o «pon alarma a las 7:00 AM».
-Estos comandos **no necesitan una API de IA**. La app de destino debe estar instalada.
+No hay entrenamiento de voz, registro de comandos ni frases obligatorias. Conecta una
+clave y un modelo que admita funciones y expresa lo que necesitas de forma natural.
+El proveedor decide si responde a una pregunta, continúa la conversación o solicita
+una acción del teléfono mediante su API nativa de funciones. Xylon valida esa solicitud
+y solo confirma una acción cuando Android la ejecuta o abre su pantalla de confirmación.
+
+La conversación está abierta a cualquier tema. Las acciones disponibles abarcan abrir
+cualquier app instalada, batería, linterna, cámara, ajustes de Wi-Fi, volumen, alarmas,
+temporizadores y abrir Mensajes. Las operaciones que Android no permita no se simulan.
+Sin una conexión de IA quedan disponibles atajos locales básicos; la interpretación
+abierta de peticiones requiere la clave, un modelo compatible y conexión a Internet.
 
 Para usarla **fuera de la app**:
 
-1. Abre **Ajustes → Aurea, a tu lado** y activa **Manos libres**.
+1. Abre **Ajustes → Xylon, a tu lado** y activa **Manos libres**.
 2. Concede micrófono y **Mostrar sobre otras apps**. Permite las notificaciones para
    tener a mano el botón **Detener**.
-3. Con el modo activo, di **«Aurea»** y el comando. También puedes decir su nombre,
+3. Con el modo activo, di **«Xylon»** y habla con naturalidad. También puedes decir su nombre,
    esperar y hablar a continuación. Aparece una tarjeta flotante con la respuesta.
 4. Opcionalmente, selecciona **Elegir como asistente de Android** para abrir su tarjeta
    con el gesto de asistencia de tu móvil. Este gesto no necesita permiso de superposición.
@@ -46,7 +53,7 @@ Para usarla **fuera de la app**:
 El reconocimiento de Manos libres es **local**, con Vosk y un modelo de español incluido
 en el APK. No descarga un perfil personal ni guarda grabaciones. La primera activación
 prepara el modelo y puede tardar unos segundos. Si hay una voz española de texto a voz
-instalada en Android, Aurea también responde hablando.
+instalada en Android, Xylon también responde hablando.
 
 La notificación y el interruptor permiten detener la escucha. No se reactiva por sí sola
 tras reiniciar, forzar el cierre o matar el proceso. Mantener el micrófono activo consume
@@ -69,7 +76,7 @@ No hay un servicio web o runtime Python/Kivy/Buildozer en el repositorio ni en e
 
 ## Interfaz y pruebas
 
-<img src="docs/previews/inicio.png" width="225" alt="Inicio de Aurea" /> <img src="docs/previews/menu.png" width="225" alt="Menú lateral" /> <img src="docs/previews/ajustes.png" width="225" alt="Proveedores de IA" />
+<img src="docs/previews/inicio.png" width="225" alt="Inicio de Xylon" /> <img src="docs/previews/menu.png" width="225" alt="Menú lateral" /> <img src="docs/previews/ajustes.png" width="225" alt="Proveedores de IA" />
 
 Actions publica el APK únicamente después de superar compilación, pruebas de contratos
 HTTP de los cinco proveedores, comandos, renderizados, lint y pruebas instrumentadas en
@@ -77,6 +84,9 @@ HTTP de los cinco proveedores, comandos, renderizados, lint y pruebas instrument
 artefacto anterior sigue disponible, arranque, teclado, historial, claves separadas,
 migración Groq, sesión del asistente del sistema y superposición desde fuera de la app.
 
+Las pruebas HTTP comprueban respuestas de texto y funciones nativas de los cinco
+proveedores, además de rechazar funciones desconocidas y argumentos inválidos.
+El texto normal de una respuesta nunca se ejecuta como una instrucción del teléfono.
 La prueba de voz decodifica un audio español sintético real con Vosk; después entrega
 esa hipótesis al mismo controlador utilizado por el micrófono y comprueba que abre una
 app de verificación independiente sobre el launcher. Esa app se llama «YouTube (prueba)»

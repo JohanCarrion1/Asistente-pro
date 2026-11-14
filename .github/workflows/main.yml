@@ -1,4 +1,4 @@
-name: Aurea - Android nativo verificado
+name: Xylon - Android nativo verificado
 on:
   push:
     branches: [main]
@@ -29,7 +29,7 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: .speech-cache/
-          key: aurea-spanish-speech-09b239888f633ef2
+          key: xylon-spanish-speech-09b239888f633ef2
       - uses: actions/cache/restore@v4
         id: signing
         with:
@@ -55,7 +55,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh run download 43547538450 --name asistente-pro-apk --dir "$RUNNER_TEMP/asistente-v2"
-      - name: Obtener Asistente Pro 3 para verificar actualización a Aurea
+      - name: Obtener Asistente Pro 3 para verificar actualización a Xylon
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
@@ -97,6 +97,7 @@ jobs:
           arch: x86_64
           profile: pixel_3a
           avd-name: asistente-api37
+          disk-size: '8G'
           ram-size: '4096'
           heap-size: '512'
           disable-animations: true
@@ -104,16 +105,16 @@ jobs:
           script: bash ci/android-device-check.sh
       - name: Preparar APK comprobado
         run: |
-          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Aurea-4.0.0.apk
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Xylon-4.0.0.apk
           cd app/build/outputs/apk/debug
-          sha256sum Aurea-4.0.0.apk > Aurea-4.0.0.apk.sha256
+          sha256sum Xylon-4.0.0.apk > Xylon-4.0.0.apk.sha256
       - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
           name: asistente-pro-apk
           path: |
-            app/build/outputs/apk/debug/Aurea-4.0.0.apk
-            app/build/outputs/apk/debug/Aurea-4.0.0.apk.sha256
+            app/build/outputs/apk/debug/Xylon-4.0.0.apk
+            app/build/outputs/apk/debug/Xylon-4.0.0.apk.sha256
           if-no-files-found: error
           retention-days: 30
       - name: Publicar evidencias de Android y pruebas

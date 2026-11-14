@@ -17,7 +17,7 @@
         <intent><action android:name="android.speech.RecognitionService" /></intent>
         <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
     </queries>
-    <application android:allowBackup="false" android:label="Aurea"
+    <application android:allowBackup="false" android:label="Xylon"
         android:dataExtractionRules="@xml/data_extraction_rules" tools:targetApi="s"
         android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"
         android:supportsRtl="true" android:usesCleartextTraffic="false"
@@ -25,15 +25,15 @@
         <service android:name=".HandsFreeService" android:exported="false" android:foregroundServiceType="microphone" />
         <!-- Android 11 requires a real Binder caller for microphone delivery;
              a recognizer in the caller's process fails its permission check. -->
-        <service android:name=".AureaRecognitionService" android:process=":recognition" android:exported="true" android:permission="android.permission.BIND_RECOGNITION_SERVICE">
+        <service android:name=".XylonRecognitionService" android:process=":recognition" android:exported="true" android:permission="android.permission.BIND_RECOGNITION_SERVICE">
             <intent-filter><action android:name="android.speech.RecognitionService" /></intent-filter>
             <meta-data android:name="android.speech" android:resource="@xml/recognition_service" />
         </service>
-        <service android:name=".AureaVoiceService" android:exported="true" android:permission="android.permission.BIND_VOICE_INTERACTION">
+        <service android:name=".XylonVoiceService" android:exported="true" android:permission="android.permission.BIND_VOICE_INTERACTION">
             <intent-filter><action android:name="android.service.voice.VoiceInteractionService" /></intent-filter>
             <meta-data android:name="android.voice_interaction" android:resource="@xml/voice_interaction" />
         </service>
-        <service android:name=".AureaSessionService" android:exported="true" android:permission="android.permission.BIND_VOICE_INTERACTION" />
+        <service android:name=".XylonSessionService" android:exported="true" android:permission="android.permission.BIND_VOICE_INTERACTION" />
         <activity android:name=".MainActivity" android:exported="true"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>

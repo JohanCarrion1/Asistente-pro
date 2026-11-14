@@ -30,73 +30,49 @@ import java.util.Date
 import java.util.Locale
 
 @Composable fun AssistantHome(state: AssistantState, events: AssistantCallbacks) {
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 20.dp, vertical = 20.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
         item {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text("A TU LADO", color = Mint, fontSize = 10.sp, letterSpacing = 2.sp, fontWeight = FontWeight.Medium)
-                    Text("Menos esfuerzo.\nMás posibilidades.", Modifier.padding(top = 12.dp), color = Cream, fontSize = 30.sp, lineHeight = 37.sp, letterSpacing = (-1.2).sp)
+                    Text("Tu voz.\nTus posibilidades.", Modifier.padding(top = 14.dp), color = Cream, fontSize = 31.sp, lineHeight = 39.sp, letterSpacing = (-1.1).sp)
                 }
-                BrandImage(Modifier.size(82.dp))
+                BrandImage(Modifier.size(84.dp))
             }
         }
         item {
             AssistantCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.size(36.dp).background(PanelLight, CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.AutoAwesome, null, tint = Mint, modifier = Modifier.size(20.dp)) }
-                    Text(if (state.hasKey) "Tu espacio para pensar" else "Una conversación que va contigo", Modifier.padding(start = 12.dp).weight(1f), color = Cream, fontSize = 17.sp, fontWeight = FontWeight.Medium, lineHeight = 24.sp)
+                    Icon(Icons.Outlined.AutoAwesome, null, tint = Mint, modifier = Modifier.size(25.dp))
+                    Text("Sin guiones. Como tú hablas.", Modifier.padding(start = 12.dp).weight(1f), color = Cream, fontSize = 19.sp, lineHeight = 27.sp, fontWeight = FontWeight.Medium)
                 }
-                Text(if (state.hasKey) "Conectada a ${state.provider.title}. Pregunta, escribe o dale forma a una idea." else "Elige Gemini, Claude, OpenRouter, Groq u OpenAI y conecta tu clave. Las acciones del teléfono funcionan sin ella.", Modifier.padding(top = 14.dp), color = Muted, fontSize = 14.sp, lineHeight = 23.sp)
-                Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.End) {
-                    Button(onClick = { events.onPage(Page.Settings) }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF526DFF), contentColor = Color.White)) { Text(if (state.hasKey) "Mis preferencias" else "Conectar IA", fontSize = 13.sp, modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)) }
+                Text(if (state.hasKey) "Habla, pregunta o pide lo que necesitas con tus propias palabras. ${state.provider.title} interpreta tu intención y Xylon se encarga de las acciones disponibles en Android."
+                    else "Conecta tu IA favorita y conversa con naturalidad. Sin memorizar comandos ni registrar tu voz.", Modifier.padding(top = 18.dp), color = Muted, fontSize = 14.sp, lineHeight = 24.sp)
+                Row(Modifier.fillMaxWidth().padding(top = 20.dp), horizontalArrangement = Arrangement.End) {
+                    Button(onClick = { events.onPage(Page.Settings) }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF526DFF), contentColor = Color.White)) {
+                        Text(if (state.hasKey) "Mi conexión · ${state.provider.title}" else "Conectar mi IA", fontSize = 13.sp, modifier = Modifier.padding(horizontal = 5.dp, vertical = 3.dp))
+                    }
                 }
             }
         }
         item {
             AssistantCard {
-                Text("Prueba a decir", style = TextStyle(brush = Aurora, fontSize = 20.sp, fontWeight = FontWeight.SemiBold))
-                Spacer(Modifier.height(16.dp))
-                Suggestion("¿Cuánta batería tengo?", Icons.Outlined.BatteryChargingFull) { events.onSend("cuánta batería tengo") }
-                Suggestion("Aurea, abre YouTube", Icons.Outlined.PlayCircleOutline) { events.onSend("Aurea, abre YouTube") }
-                Suggestion("¿Qué puedes hacer?", Icons.Outlined.ChatBubbleOutline) { events.onSend("qué puedes hacer") }
+                Icon(Icons.Outlined.GraphicEq, null, tint = Mint, modifier = Modifier.size(28.dp))
+                Text("También fuera de aquí.", Modifier.padding(top = 16.dp), color = Cream, fontSize = 20.sp)
+                Text(if (state.handsFreeActive) state.handsFreeStatus else "Activa Manos libres para llamar a Xylon desde otras apps. La tarjeta flotante mantiene la conversación contigo.", Modifier.padding(top = 12.dp), color = Muted, fontSize = 13.sp, lineHeight = 23.sp)
+                TextButton(onClick = { events.onPage(Page.Settings) }, modifier = Modifier.padding(top = 10.dp)) {
+                    Text(if (state.handsFreeActive) "Gestionar Manos libres" else "Activar Manos libres", color = Mint)
+                }
             }
         }
         item {
-            AssistantCard {
-                Text("Una palabra. Aquí estoy.", color = Cream, fontSize = 20.sp)
-                Text(if (state.handsFreeActive) state.handsFreeStatus else "Di «Aurea, abre YouTube» incluso desde otra app. Sin registrar tu voz. Activa Manos libres una vez en Ajustes.", Modifier.padding(top = 12.dp), color = Muted, fontSize = 13.sp, lineHeight = 22.sp)
-                TextButton(onClick = { events.onPage(Page.Settings) }) { Text(if (state.handsFreeActive) "Gestionar Manos libres" else "Configurar Manos libres", color = Mint) }
-            }
-        }
-        item {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) { Text("Un gesto y listo", color = Cream, fontSize = 16.sp, fontWeight = FontWeight.Medium); Spacer(Modifier.weight(1f)); Text("EN TU TELÉFONO", color = Muted, fontSize = 9.sp, letterSpacing = .7.sp) }
-            Spacer(Modifier.height(13.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                QuickAction(if (state.torchOn) "Apagar luz" else "Linterna", Icons.Outlined.FlashlightOn, Modifier.weight(1f), state.torchOn) { events.onAction(DeviceAction.Torch(null)) }
-                QuickAction("Cámara", Icons.Outlined.PhotoCamera, Modifier.weight(1f)) { events.onAction(DeviceAction.Camera) }
-                QuickAction("Wi-Fi", Icons.Outlined.Wifi, Modifier.weight(1f)) { events.onAction(DeviceAction.Wifi) }
-            }
-        }
-        item {
-            Text("También puedes decir «abre Spotify», «sube el volumen» o «pon alarma a las 7:00 AM». Android te pedirá los permisos o confirmaciones necesarios.", color = Muted, fontSize = 12.sp, lineHeight = 20.sp, modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp))
+            Text("Una conversación abierta a tus ideas.", color = Muted, fontSize = 12.sp, modifier = Modifier.fillMaxWidth().padding(horizontal = 5.dp, vertical = 8.dp))
         }
     }
 }
 
 @Composable fun AssistantCard(content: @Composable ColumnScope.() -> Unit) {
     Column(Modifier.fillMaxWidth().clip(CardShape).background(Panel).border(1.dp, Color(0xFF292B38), CardShape).padding(22.dp), content = content)
-}
-
-@Composable private fun Suggestion(text: String, icon: ImageVector, click: () -> Unit) {
-    Row(Modifier.padding(bottom = 9.dp).clip(CircleShape).border(1.dp, Aurora, CircleShape).clickable(onClick = click).padding(horizontal = 14.dp, vertical = 13.dp).heightIn(min = 22.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(icon, null, tint = Mint, modifier = Modifier.size(18.dp)); Spacer(Modifier.width(10.dp)); Text(text, color = Cream, fontSize = 13.sp, lineHeight = 20.sp)
-    }
-}
-
-@Composable private fun QuickAction(label: String, icon: ImageVector, modifier: Modifier, selected: Boolean = false, click: () -> Unit) {
-    Column(modifier.clip(RoundedCornerShape(20.dp)).background(if (selected) Color(0xFF28375F) else Panel).clickable(onClick = click).padding(vertical = 17.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Icon(icon, label, tint = Mint, modifier = Modifier.size(23.dp)); Text(label, Modifier.padding(top = 9.dp), color = Cream, fontSize = 12.sp)
-    }
 }
 
 @Composable fun ConversationScreen(state: AssistantState, events: AssistantCallbacks) {
@@ -108,7 +84,7 @@ import java.util.Locale
                 if (message.user) {
                     SelectionContainer { Text(message.text, Modifier.widthIn(max = 310.dp).clip(RoundedCornerShape(24.dp, 24.dp, 7.dp, 24.dp)).background(Color(0xFF242738)).padding(18.dp), color = Cream, fontSize = 15.sp, lineHeight = 25.sp) }
                 } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) { BrandImage(Modifier.size(28.dp)); Text("  AUREA", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp) }
+                    Row(verticalAlignment = Alignment.CenterVertically) { BrandImage(Modifier.size(28.dp)); Text("  XYLON", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp) }
                     Spacer(Modifier.height(12.dp))
                     SelectionContainer { Text(message.text, color = Cream, fontSize = 16.sp, lineHeight = 28.sp) }
                     val clipboard = LocalClipboardManager.current

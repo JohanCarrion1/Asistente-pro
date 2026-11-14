@@ -22,7 +22,7 @@ import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 class MainActivity : ComponentActivity() {
-    private val runtime by lazy { AureaRuntime.get(this) }
+    private val runtime by lazy { XylonRuntime.get(this) }
     private val model get() = runtime.engine
     private var recognizer: SpeechRecognizer? = null
     private var generation = 0
@@ -61,10 +61,13 @@ class MainActivity : ComponentActivity() {
             ))
         }
     }
-    override fun onStart() { super.onStart(); runtime.foregroundLauncher = { startActivity(it) } }
+    override fun onStart() {
+        super.onStart(); runtime.foregroundLauncher = { startActivity(it) }
+        runtime.cameraPermissionRequester = { pendingAction = it; cameraPermission.launch(Manifest.permission.CAMERA) }
+    }
     override fun onResume() {
         super.onResume()
-        model.permissions(Settings.canDrawOverlays(this), VoiceInteractionService.isActiveService(this, ComponentName(this, AureaVoiceService::class.java)))
+        model.permissions(Settings.canDrawOverlays(this), VoiceInteractionService.isActiveService(this, ComponentName(this, XylonVoiceService::class.java)))
         if (pendingHandsFree && Settings.canDrawOverlays(this)) { pendingHandsFree = false; handsFree(true) }
     }
     private fun perform(action: DeviceAction) {
@@ -75,7 +78,7 @@ class MainActivity : ComponentActivity() {
     }
     private fun overlayPermission() {
         runCatching { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))) }
-            .onFailure { model.error("Abre los ajustes de Android y permite a Aurea mostrarse sobre otras apps.") }
+            .onFailure { model.error("Abre los ajustes de Android y permite a Xylon mostrarse sobre otras apps.") }
     }
     private fun defaultAssistant() {
         runCatching {
@@ -84,7 +87,7 @@ class MainActivity : ComponentActivity() {
                 if (role.isRoleAvailable(RoleManager.ROLE_ASSISTANT) && !role.isRoleHeld(RoleManager.ROLE_ASSISTANT)) startActivity(role.createRequestRoleIntent(RoleManager.ROLE_ASSISTANT))
                 else startActivity(Intent(Settings.ACTION_VOICE_INPUT_SETTINGS))
             } else startActivity(Intent(Settings.ACTION_VOICE_INPUT_SETTINGS))
-        }.onFailure { model.error("Selecciona Aurea como app de asistencia en los ajustes de Android.") }
+        }.onFailure { model.error("Selecciona Xylon como app de asistencia en los ajustes de Android.") }
     }
     private fun handsFree(enabled: Boolean) {
         if (!enabled) { stopService(Intent(this, HandsFreeService::class.java)); pendingHandsFree = false; return }
@@ -111,7 +114,7 @@ class MainActivity : ComponentActivity() {
     private fun listen() {
         if (!SpeechRecognizer.isRecognitionAvailable(this)) { model.error("Activa Manos libres en Ajustes para usar la voz local, o instala un servicio de voz de Android."); return }
         recognizer?.destroy(); val current = ++generation
-        recognizer = SpeechRecognizer.createSpeechRecognizer(this, ComponentName(this, AureaRecognitionService::class.java)).apply {
+        recognizer = SpeechRecognizer.createSpeechRecognizer(this, ComponentName(this, XylonRecognitionService::class.java)).apply {
             setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) { if (current == generation) model.phase(VoicePhase.Listening) }
                 override fun onBeginningOfSpeech() = Unit
@@ -135,6 +138,6 @@ class MainActivity : ComponentActivity() {
         }
     }
     private fun stopVoice() { generation++; recognizer?.cancel(); runtime.stopSpeaking(); if (model.state.value.phase == VoicePhase.Listening) model.phase(VoicePhase.Idle) }
-    override fun onStop() { generation++; recognizer?.cancel(); runtime.foregroundLauncher = null; super.onStop() }
+    override fun onStop() { generation++; recognizer?.cancel(); runtime.foregroundLauncher = null; runtime.cameraPermissionRequester = null; super.onStop() }
     override fun onDestroy() { recognizer?.destroy(); super.onDestroy() }
 }

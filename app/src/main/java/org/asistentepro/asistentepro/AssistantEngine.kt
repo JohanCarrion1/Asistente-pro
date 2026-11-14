@@ -85,7 +85,9 @@ class AssistantEngine(application: Application) {
         val text = value.trim().take(12000)
         if (text.isEmpty() || request?.isActive == true) return
         spokenTurn = spoken
-        val action = ActionRouter.parse(text)
+        // Connected conversations use the provider's native function calling.
+        // Local shortcuts are only an offline fallback, never required phrasing.
+        val action = if (!state.value.hasKey) ActionRouter.parse(text) else null
         if (action != null) {
             store.draft = ""
             mutable.update { it.copy(page = Page.Assistant, draft = "", error = null, phase = VoicePhase.Idle) }
@@ -105,12 +107,15 @@ class AssistantEngine(application: Application) {
                 val response = withContext(Dispatchers.IO) {
                     val newCall = ai.call(provider, apiKey, model, history)
                     call = newCall
-                    ai.execute(provider, newCall)
+                    ai.reply(provider, newCall)
                 }
                 if (activeId == conversationId) {
-                    append(response, false)
                     phase(VoicePhase.Idle)
-                    if (state.value.readAloud || spoken) onSpeak?.invoke(response)
+                    if (response.action != null) onDeviceAction?.invoke(response.action)
+                    else {
+                        append(response.text, false)
+                        if (state.value.readAloud || spoken) onSpeak?.invoke(response.text)
+                    }
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (error: Exception) {
