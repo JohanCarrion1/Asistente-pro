@@ -50,6 +50,9 @@ jobs:
           mkdir -p .android-sdk
           unzip -q /tmp/android-tools.zip -d .android-sdk
           mv .android-sdk/cmdline-tools .android-sdk/tools
+          mkdir -p .android-sdk/cmdline-tools
+          mv .android-sdk/tools .android-sdk/cmdline-tools/latest
+          ln -s cmdline-tools/latest .android-sdk/tools
           set +o pipefail
           yes | .android-sdk/tools/bin/sdkmanager --sdk_root="$PWD/.android-sdk" --licenses > /dev/null
           set -o pipefail
@@ -57,6 +60,8 @@ jobs:
       - name: Compilar APK
         run: |
           set -o pipefail
+          export ANDROID_HOME="$PWD/.android-sdk"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
           buildozer -v android debug 2>&1 | tee buildozer_log.txt
       - name: Subir APK descargable
         uses: actions/upload-artifact@v4
