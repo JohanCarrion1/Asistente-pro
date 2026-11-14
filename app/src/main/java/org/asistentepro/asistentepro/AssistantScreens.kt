@@ -46,7 +46,7 @@ import java.util.Locale
                     Box(Modifier.size(36.dp).background(PanelLight, CircleShape), contentAlignment = Alignment.Center) { Icon(Icons.Outlined.AutoAwesome, null, tint = Mint, modifier = Modifier.size(20.dp)) }
                     Text(if (state.hasKey) "Tu espacio para pensar" else "Una conversación que va contigo", Modifier.padding(start = 12.dp).weight(1f), color = Cream, fontSize = 17.sp, fontWeight = FontWeight.Medium, lineHeight = 24.sp)
                 }
-                Text(if (state.hasKey) "Pregunta, escribe o dale forma a una idea. La clave de Groq está guardada en este dispositivo." else "Conecta tu clave de Groq para conversar con IA. Las acciones de tu teléfono ya funcionan sin ella.", Modifier.padding(top = 14.dp), color = Muted, fontSize = 14.sp, lineHeight = 23.sp)
+                Text(if (state.hasKey) "Conectada a ${state.provider.title}. Pregunta, escribe o dale forma a una idea." else "Elige Gemini, Claude, OpenRouter, Groq u OpenAI y conecta tu clave. Las acciones del teléfono funcionan sin ella.", Modifier.padding(top = 14.dp), color = Muted, fontSize = 14.sp, lineHeight = 23.sp)
                 Row(Modifier.fillMaxWidth().padding(top = 16.dp), horizontalArrangement = Arrangement.End) {
                     Button(onClick = { events.onPage(Page.Settings) }, shape = CircleShape, colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF526DFF), contentColor = Color.White)) { Text(if (state.hasKey) "Mis preferencias" else "Conectar IA", fontSize = 13.sp, modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)) }
                 }
@@ -57,8 +57,15 @@ import java.util.Locale
                 Text("Prueba a decir", style = TextStyle(brush = Aurora, fontSize = 20.sp, fontWeight = FontWeight.SemiBold))
                 Spacer(Modifier.height(16.dp))
                 Suggestion("¿Cuánta batería tengo?", Icons.Outlined.BatteryChargingFull) { events.onSend("cuánta batería tengo") }
-                Suggestion("Temporizador de 5 minutos", Icons.Outlined.Timer) { events.onSend("temporizador de 5 minutos") }
+                Suggestion("Aurea, abre YouTube", Icons.Outlined.PlayCircleOutline) { events.onSend("Aurea, abre YouTube") }
                 Suggestion("¿Qué puedes hacer?", Icons.Outlined.ChatBubbleOutline) { events.onSend("qué puedes hacer") }
+            }
+        }
+        item {
+            AssistantCard {
+                Text("Una palabra. Aquí estoy.", color = Cream, fontSize = 20.sp)
+                Text(if (state.handsFreeActive) state.handsFreeStatus else "Di «Aurea, abre YouTube» incluso desde otra app. Sin registrar tu voz. Activa Manos libres una vez en Ajustes.", Modifier.padding(top = 12.dp), color = Muted, fontSize = 13.sp, lineHeight = 22.sp)
+                TextButton(onClick = { events.onPage(Page.Settings) }) { Text(if (state.handsFreeActive) "Gestionar Manos libres" else "Configurar Manos libres", color = Mint) }
             }
         }
         item {
@@ -101,7 +108,7 @@ import java.util.Locale
                 if (message.user) {
                     SelectionContainer { Text(message.text, Modifier.widthIn(max = 310.dp).clip(RoundedCornerShape(24.dp, 24.dp, 7.dp, 24.dp)).background(Color(0xFF242738)).padding(18.dp), color = Cream, fontSize = 15.sp, lineHeight = 25.sp) }
                 } else {
-                    Row(verticalAlignment = Alignment.CenterVertically) { BrandImage(Modifier.size(28.dp)); Text("  ASISTENTE PRO", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp) }
+                    Row(verticalAlignment = Alignment.CenterVertically) { BrandImage(Modifier.size(28.dp)); Text("  AUREA", color = Mint, fontSize = 10.sp, fontWeight = FontWeight.Medium, letterSpacing = 1.sp) }
                     Spacer(Modifier.height(12.dp))
                     SelectionContainer { Text(message.text, color = Cream, fontSize = 16.sp, lineHeight = 28.sp) }
                     val clipboard = LocalClipboardManager.current

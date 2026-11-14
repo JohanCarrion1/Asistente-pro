@@ -22,19 +22,24 @@ class LocalStore(context: Context) {
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())
         }.generateKey()
     }
-    fun apiKey(): String = runCatching {
-        val encoded = preferences.getString("groq_key", null) ?: return@runCatching ""
+    var provider: AiProvider
+        get() = AiProvider.from(preferences.getString("provider", null))
+        set(value) { preferences.edit().putString("provider", value.name).apply() }
+    fun apiKey(provider: AiProvider = this.provider): String = runCatching {
+        val encoded = preferences.getString("key_${provider.name}", null)
+            ?: (if (provider == AiProvider.Groq) preferences.getString("groq_key", null) else null) ?: return@runCatching ""
         val parts = encoded.split(":")
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, secret(), GCMParameterSpec(128, Base64.decode(parts[0], Base64.NO_WRAP)))
         String(cipher.doFinal(Base64.decode(parts[1], Base64.NO_WRAP)), Charsets.UTF_8)
     }.getOrDefault("")
-    fun saveKey(value: String) {
+    fun saveKey(value: String, provider: AiProvider = this.provider) {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, secret()) }
         val data = Base64.encodeToString(cipher.iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(cipher.doFinal(value.toByteArray()), Base64.NO_WRAP)
-        check(preferences.edit().putString("groq_key", data).commit()) { "No se pudo guardar la clave" }
+        check(preferences.edit().putString("key_${provider.name}", data).commit()) { "No se pudo guardar la clave" }
     }
-    fun deleteKey() { preferences.edit().remove("groq_key").apply() }
+    fun deleteKey() { preferences.edit().remove("key_${provider.name}").apply(); if (provider == AiProvider.Groq) preferences.edit().remove("groq_key").apply() }
+    fun configuredProviders() = AiProvider.entries.filter { apiKey(it).isNotBlank() }.toSet()
     var draft: String
         get() = preferences.getString("draft", "") ?: ""
         set(value) { preferences.edit().putString("draft", value).apply() }
@@ -42,8 +47,9 @@ class LocalStore(context: Context) {
         get() = preferences.getBoolean("read_aloud", false)
         set(value) { preferences.edit().putBoolean("read_aloud", value).apply() }
     var model: String
-        get() = preferences.getString("model", "llama-3.1-8b-instant")!!
-        set(value) { preferences.edit().putString("model", value).apply() }
+        get() = preferences.getString("model_${provider.name}", null)
+            ?: (if (provider == AiProvider.Groq) preferences.getString("model", null) else null) ?: provider.defaultModel
+        set(value) { preferences.edit().putString("model_${provider.name}", value).apply() }
     fun conversations(): List<Conversation> = runCatching {
         val array = JSONArray(preferences.getString("conversations", "[]"))
         (0 until array.length()).map { index ->

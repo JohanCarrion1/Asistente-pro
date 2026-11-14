@@ -1,8 +1,8 @@
 package org.asistentepro.asistentepro
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -14,16 +14,25 @@ import kotlinx.coroutines.withContext
 import okhttp3.Call
 import java.util.UUID
 
-class AssistantViewModel(application: Application) : AndroidViewModel(application) {
+class AssistantEngine(application: Application) {
     private val store = LocalStore(application)
-    private val groq = GroqClient()
-    private val mutable = MutableStateFlow(AssistantState(hasKey = store.apiKey().isNotBlank(), conversations = store.conversations(), readAloud = store.readAloud, model = store.model, draft = store.draft))
+    private val ai = AiClient()
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    private val mutable = MutableStateFlow(AssistantState(hasKey = store.apiKey().isNotBlank(), provider = store.provider,
+        configuredProviders = store.configuredProviders(), conversations = store.conversations(), readAloud = store.readAloud, model = store.model, draft = store.draft))
     val state = mutable.asStateFlow()
     private var conversationId = UUID.randomUUID().toString()
     private var request: Job? = null
     private var call: Call? = null
+    private var spokenTurn = false
     var onDeviceAction: ((DeviceAction) -> Unit)? = null
     var onSpeak: ((String) -> Unit)? = null
+    fun handsFree(active: Boolean, status: String) { mutable.update { it.copy(handsFreeActive = active, handsFreeStatus = status) } }
+    fun permissions(overlay: Boolean, assistant: Boolean) { mutable.update { it.copy(overlayGranted = overlay, assistantSelected = assistant) } }
+    fun provider(value: AiProvider) {
+        stop(); store.provider = value
+        mutable.update { it.copy(provider = value, model = store.model, hasKey = store.apiKey().isNotBlank(), keyDraft = "", error = null, notice = null) }
+    }
 
     fun draft(value: String) { store.draft = value; mutable.update { it.copy(draft = value) } }
     fun keyDraft(value: String) { mutable.update { it.copy(keyDraft = value, error = null) } }
@@ -36,12 +45,12 @@ class AssistantViewModel(application: Application) : AndroidViewModel(applicatio
     fun torch(value: Boolean) { mutable.update { it.copy(torchOn = value) } }
     fun saveKey() {
         val key = state.value.keyDraft.trim()
-        if (!key.startsWith("gsk_") || key.length < 24) { error("Pega una clave válida de Groq; normalmente empieza por gsk_."); return }
+        if (key.length < 12 || key.any { it.isWhitespace() }) { error("Pega la clave completa de ${state.value.provider.title}, sin espacios."); return }
         runCatching { store.saveKey(key) }.onSuccess {
-            mutable.update { it.copy(hasKey = true, keyDraft = "", notice = "Clave guardada de forma segura.", error = null) }
+            mutable.update { it.copy(hasKey = true, configuredProviders = store.configuredProviders(), keyDraft = "", notice = "Clave de ${it.provider.title} guardada de forma segura.", error = null) }
         }.onFailure { error("No se pudo guardar la clave en este dispositivo.") }
     }
-    fun removeKey() { store.deleteKey(); mutable.update { it.copy(hasKey = false, keyDraft = "", notice = "Clave eliminada.") } }
+    fun removeKey() { store.deleteKey(); mutable.update { it.copy(hasKey = false, configuredProviders = store.configuredProviders(), keyDraft = "", notice = "Clave eliminada.") } }
     fun clearHistory() { stop(); store.draft = ""; store.saveConversations(emptyList()); conversationId = UUID.randomUUID().toString(); mutable.update { it.copy(conversations = emptyList(), messages = emptyList(), draft = "", notice = "Historial eliminado.") } }
     fun newConversation() { stop(); store.draft = ""; conversationId = UUID.randomUUID().toString(); mutable.update { it.copy(page = Page.Assistant, messages = emptyList(), draft = "", error = null, notice = null) } }
     fun openConversation(item: Conversation) { stop(); conversationId = item.id; mutable.update { it.copy(page = Page.Assistant, messages = item.messages, error = null) } }
@@ -69,17 +78,19 @@ class AssistantViewModel(application: Application) : AndroidViewModel(applicatio
     fun deviceResult(text: String) {
         if (state.value.messages.isEmpty()) mutable.update { it.copy(notice = text) }
         else append(text, false)
+        if (spokenTurn || state.value.readAloud) onSpeak?.invoke(text)
     }
-    fun send(value: String = state.value.draft) {
+    fun send(value: String = state.value.draft, spoken: Boolean = false) {
         val text = value.trim().take(12000)
         if (text.isEmpty() || request?.isActive == true) return
+        spokenTurn = spoken
         val action = ActionRouter.parse(text)
         if (action != null) {
             store.draft = ""
             mutable.update { it.copy(page = Page.Assistant, draft = "", error = null, phase = VoicePhase.Idle) }
             append(text, true); onDeviceAction?.invoke(action); return
         }
-        if (!state.value.hasKey) { store.draft = text; mutable.update { it.copy(page = Page.Settings, draft = text, error = "Añade tu clave de Groq para conversar. Las acciones del teléfono no necesitan clave.") }; return }
+        if (!state.value.hasKey) { store.draft = text; mutable.update { it.copy(page = Page.Settings, draft = text, error = "Añade tu clave de ${it.provider.title} para conversar. Las acciones del teléfono no necesitan clave.") }; return }
         mutable.update { it.copy(page = Page.Assistant, draft = "", error = null, phase = VoicePhase.Thinking) }
         store.draft = ""
         append(text, true)
@@ -87,17 +98,18 @@ class AssistantViewModel(application: Application) : AndroidViewModel(applicatio
         val history = state.value.messages
         val apiKey = store.apiKey()
         val model = state.value.model
-        request = viewModelScope.launch {
+        val provider = state.value.provider
+        request = scope.launch {
             try {
                 val response = withContext(Dispatchers.IO) {
-                    val newCall = groq.call(apiKey, model, history)
+                    val newCall = ai.call(provider, apiKey, model, history)
                     call = newCall
-                    groq.execute(newCall)
+                    ai.execute(provider, newCall)
                 }
                 if (activeId == conversationId) {
                     append(response, false)
                     phase(VoicePhase.Idle)
-                    if (state.value.readAloud) onSpeak?.invoke(response)
+                    if (state.value.readAloud || spoken) onSpeak?.invoke(response)
                 }
             } catch (cancelled: CancellationException) { throw cancelled }
             catch (error: Exception) {
@@ -109,5 +121,4 @@ class AssistantViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
-    override fun onCleared() { call?.cancel(); super.onCleared() }
 }

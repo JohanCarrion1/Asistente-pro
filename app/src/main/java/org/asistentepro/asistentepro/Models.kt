@@ -19,6 +19,12 @@ data class AssistantState(
     val notice: String? = null,
     val keyDraft: String = "",
     val model: String = "llama-3.1-8b-instant",
+    val provider: AiProvider = AiProvider.Groq,
+    val configuredProviders: Set<AiProvider> = emptySet(),
+    val handsFreeActive: Boolean = false,
+    val handsFreeStatus: String = "Desactivado",
+    val overlayGranted: Boolean = false,
+    val assistantSelected: Boolean = false,
 )
 
 sealed interface DeviceAction {
@@ -36,7 +42,7 @@ sealed interface DeviceAction {
 
 object ActionRouter {
     fun parse(text: String): DeviceAction? {
-        val value = Normalizer.normalize(text.lowercase(), Normalizer.Form.NFD)
+        val value = Normalizer.normalize(WakePhrase.stripOptionalName(text).lowercase(), Normalizer.Form.NFD)
             .replace("\\p{M}+".toRegex(), "").trim().trim('¿', '?', '¡', '!', '.', ',').trim()
         if (value in listOf("ayuda", "que puedes hacer", "como uso asistente pro", "como te uso")) return DeviceAction.Help
         if (value in listOf("sube el volumen", "subir volumen", "sube volumen")) return DeviceAction.Volume(true)
@@ -62,7 +68,8 @@ object ActionRouter {
         if (value in listOf("wifi", "wi-fi", "abre wifi", "ajustes wifi", "abre ajustes wifi")) return DeviceAction.Wifi
         if (value.contains("bateria") && (value.contains("cuanta") || value.contains("estado") || value == "bateria")) return DeviceAction.Battery
         if (value in listOf("sms", "enviar sms", "abre mensajes", "abrir mensajes")) return DeviceAction.Sms
-        if (value.startsWith("abre ") && value.length > 5) return DeviceAction.OpenApp(value.removePrefix("abre ").removePrefix("la app ").trim())
+        val opening = Regex("^(?:abre|abra|abrir|abreme|inicia|abrime)\\s+(?:(?:la|el)\\s+)?(?:(?:aplicacion|app)\\s+)?(.+?)(?:\\s+por favor)?$").matchEntire(value)
+        if (opening != null) return DeviceAction.OpenApp(opening.groupValues[1].trim())
         if (listOf("temporizador", "pon temporizador", "pon un temporizador", "inicia un temporizador", "cuenta atras").any { value.startsWith(it) }) {
             val amount = "\\b(\\d{1,4})\\b".toRegex().find(value)?.groupValues?.get(1)?.toIntOrNull() ?: return null
             val seconds = amount * if (value.contains("segundo")) 1 else if (value.contains("hora")) 3600 else 60

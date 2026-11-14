@@ -2,6 +2,7 @@
 .kotlin/
 .idea/
 .ci-signing/
+.speech-cache/
 build/
 local.properties
 *.apk

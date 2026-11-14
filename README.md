@@ -1,68 +1,108 @@
-# Asistente Pro · Android nativo
+# Aurea · Inteligencia a tu manera
 
-Aplicación Android en **Kotlin y Jetpack Compose**. Interfaz negra con acentos azul/violeta,
-icono propio, menú lateral, historial buscable, chat, voz de Android y acciones del teléfono.
-El repositorio activo ya no contiene Python, Kivy, Flask ni Buildozer. Las versiones antiguas
-se conservan exclusivamente en el historial de Git.
+Asistente Android nativo en **Kotlin y Jetpack Compose**, antes llamado Asistente Pro.
+Interfaz negra, icono propio azul/violeta, chat, menú lateral e historial local.
 
-## Instalar la reconstrucción 3.0.1
+## Instalar Aurea 4.0.0
 
-Abre la ejecución verde más reciente de **Actions → Asistente Pro - Android nativo verificado**.
-Descarga **asistente-pro-apk**, descomprime e instala **AsistentePro-Nativo-3.0.1.apk**.
-Android 8.0 o posterior; ARM y x86. Abre el icono azul/violeta nuevo.
+En **Actions → Aurea - Android nativo verificado**, abre la ejecución verde más reciente.
+Descarga **asistente-pro-apk**, extrae el ZIP e instala **Aurea-4.0.0.apk**.
+El ZIP también incluye el SHA-256 del APK. Android 8.0 o posterior; ARM y x86.
 
-Esta app tiene el identificador independiente **`app.asistentepro.android`**. Puede coexistir
-con `org.asistentepro.asistentepro`, evitando el conflicto entre las firmas de los APK
-antiguos. **No necesitas borrar los datos ni desinstalar la versión antigua.** Las apps
-son independientes y Android no permite leer automáticamente los datos privados de la otra.
+**Actualiza Asistente Pro 3.0.1 directamente**, conservando sus datos y su clave de Groq:
+se mantiene `app.asistentepro.android` y el mismo certificado de firma. El nuevo nombre
+que verás bajo el icono es **Aurea**. Las versiones antiguas con identificador
+`org.asistentepro.asistentepro` siguen siendo independientes.
 
-## Ver la interfaz
+## Elige tu proveedor de IA
 
-<img src="docs/previews/inicio.png" width="225" alt="Inicio" /> <img src="docs/previews/menu.png" width="225" alt="Menú lateral" /> <img src="docs/previews/chat.png" width="225" alt="Conversación" />
+En **Ajustes → Tu conexión de IA**, elige **Gemini, Anthropic (Claude), OpenRouter,
+Groq u OpenAI** y guarda tu clave. Cada proveedor conserva una clave cifrada y un
+modelo independientes. Puedes cambiar el identificador del modelo por cualquiera
+disponible en tu cuenta; los sugeridos pueden cambiar o requerir saldo.
 
-[Icono nuevo](docs/previews/icono.png) · [Ajustes](docs/previews/ajustes.png).
-Las capturas renderizadas se complementan con capturas y pruebas de una instalación real
-en el emulador de Android publicadas por Actions.
+Se usan los protocolos nativos de Gemini (`generateContent`) y Anthropic (`messages`),
+y Chat Completions para Groq, OpenRouter y OpenAI. La app no incluye claves, créditos
+ni suscripciones. Una clave guardada se valida con el proveedor al enviar una consulta.
+La migración de la clave cifrada de Groq de la versión anterior es automática.
 
-## Qué hace
+## «Aurea, abre YouTube» sin registrar tu voz
 
-- Chat con Groq y contexto de la conversación, cancelación, copiar y leer respuestas.
-- Voz al tocar el micrófono mediante el servicio de reconocimiento de Android.
-- Menú lateral con búsqueda, conversaciones guardadas y eliminación de historial.
-- Borrador conservado localmente para retomar lo que estabas escribiendo.
-- Clave de Groq cifrada con Android Keystore; nunca se incluye una clave de IA en el APK.
-- Acciones nativas sin clave de IA: batería, linterna, cámara, ajustes Wi-Fi, volumen,
-  abrir apps instaladas, alarmas, temporizadores y abrir mensajes.
-- Ejemplos: «cuánta batería tengo», «enciende la linterna», «abre Spotify»,
-  «sube el volumen», «pon alarma a las 7:00 AM», «temporizador de 5 minutos».
+No hay entrenamiento de voz ni identificación de hablante. Puedes escribir o decir
+«Aurea, abra la aplicación YouTube», «abre Spotify», «cuánta batería tengo»,
+«enciende la linterna», «sube el volumen» o «pon alarma a las 7:00 AM».
+Estos comandos **no necesitan una API de IA**. La app de destino debe estar instalada.
 
-Los temporizadores, alarmas y mensajes se abren en las apps del sistema y Android puede
-pedir confirmación. No hay escucha permanente, palabra de activación ni cierre forzoso
-de otras apps. La disponibilidad de voz y funciones depende de permisos, hardware y
-servicios instalados; no se simulan acciones ejecutadas.
+Para usarla **fuera de la app**:
 
-Para consultas de IA abre **Ajustes**, obtén una clave en <https://console.groq.com/keys>
-y guárdala. Los últimos mensajes necesarios se envían a Groq; el historial permanece
-en el dispositivo. No se transfiere automáticamente la clave de instalaciones antiguas.
+1. Abre **Ajustes → Aurea, a tu lado** y activa **Manos libres**.
+2. Concede micrófono y **Mostrar sobre otras apps**. Permite las notificaciones para
+   tener a mano el botón **Detener**.
+3. Con el modo activo, di **«Aurea»** y el comando. También puedes decir su nombre,
+   esperar y hablar a continuación. Aparece una tarjeta flotante con la respuesta.
+4. Opcionalmente, selecciona **Elegir como asistente de Android** para abrir su tarjeta
+   con el gesto de asistencia de tu móvil. Este gesto no necesita permiso de superposición.
 
-## Verificar y compilar
+El reconocimiento de Manos libres es **local**, con Vosk y un modelo de español incluido
+en el APK. No descarga un perfil personal ni guarda grabaciones. La primera activación
+prepara el modelo y puede tardar unos segundos. Si hay una voz española de texto a voz
+instalada en Android, Aurea también responde hablando.
 
-JDK 17, Android SDK 35, Gradle Wrapper incluido:
+La notificación y el interruptor permiten detener la escucha. No se reactiva por sí sola
+tras reiniciar, forzar el cierre o matar el proceso. Mantener el micrófono activo consume
+batería; el ahorro de energía de cada fabricante puede detenerlo. Desbloquea el teléfono
+para abrir aplicaciones. La activación depende de reconocer la palabra en español y puede
+fallar con ruido o pronunciaciones distintas. No tiene acceso al procesador de activación
+exclusivo del fabricante ni sustituye las funciones privilegiadas de Siri/Bixby.
+
+El botón del micrófono dentro de la app y el gesto de asistencia también pueden utilizar
+el servicio de reconocimiento elegido en Android. Alarmas, mensajes y otras acciones
+se abren en las apps del sistema con las confirmaciones que Android requiera.
+
+## Privacidad
+
+Las claves se cifran mediante AES/GCM y Android Keystore, separadas por proveedor.
+El historial y los borradores permanecen en el dispositivo. Al hacer una consulta de IA,
+solo el proveedor seleccionado recibe el contexto necesario (hasta 24 mensajes recientes).
+Manos libres procesa audio localmente; la superposición **no captura ni lee otras pantallas**.
+No hay un servicio web o runtime Python/Kivy/Buildozer en el repositorio ni en el APK.
+
+## Interfaz y pruebas
+
+<img src="docs/previews/inicio.png" width="225" alt="Inicio de Aurea" /> <img src="docs/previews/menu.png" width="225" alt="Menú lateral" /> <img src="docs/previews/ajustes.png" width="225" alt="Proveedores de IA" />
+
+Actions publica el APK únicamente después de superar compilación, pruebas de contratos
+HTTP de los cinco proveedores, comandos, renderizados, lint y pruebas instrumentadas en
+**Android 11 y Android 15**. Incluye instalación, actualización desde 3.0.1 cuando el
+artefacto anterior sigue disponible, arranque, teclado, historial, claves separadas,
+migración Groq, sesión del asistente del sistema y superposición desde fuera de la app.
+
+La prueba de voz decodifica un audio español sintético real con Vosk; después entrega
+esa hipótesis al mismo controlador utilizado por el micrófono y comprueba que abre una
+app de verificación independiente sobre el launcher. Esa app se llama «YouTube (prueba)»
+y **solo se instala en los emuladores**; no forma parte del APK distribuido ni suplanta
+YouTube. La prueba no sustituye una prueba acústica con un teléfono y una persona.
+
+El artefacto **asistente-pro-pruebas-android** incluye capturas, resultados y registros
+por versión de Android. Las conexiones HTTP se prueban con servidor simulado; el acceso
+real a cada cuenta requiere una clave y un modelo válidos del usuario.
+
+## Compilar
+
+JDK 17, SDK 35 y Gradle Wrapper incluidos en el flujo:
 
 ```sh
-./gradlew :app:recordPaparazziDebug :app:lintDebug :app:assembleDebug
+./gradlew :app:recordPaparazziDebug :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :verification-app:assembleDebug
 ./gradlew :app:connectedDebugAndroidTest
 ```
 
-Actions comprueba la ausencia del runtime anterior, la firma del APK, los comandos,
-peticiones y errores de Groq, renderizado en diferentes tamaños y pruebas instrumentadas
-de instalación/actualización/arranque, menú, teclado, batería e historial en Android API 30 y 35.
-También comprueba coexistencia con el APK 2.0 cuando su artefacto sigue disponible.
-El APK se publica **después** de pasar la prueba en el dispositivo virtual.
+Gradle descarga el modelo español de Vosk 0.42 desde Alpha Cephei, comprueba su SHA-256
+`09b239888f633ef2f0b4e09736e3d9936acfd810bc65d53fad45261762c6511f` y lo empaqueta.
+El caché local `.speech-cache` está excluido de Git. El APK es mayor porque incluye
+el reconocimiento sin conexión. Vosk y el modelo español se distribuyen bajo Apache 2.0;
+se incluye la licencia en los assets de la app y el README original del modelo.
 
-La firma de distribución de pruebas usa una ruta explícita y la huella SHA-256
-registrada en [`ci/signing.sha256`](ci/signing.sha256). Se establece una sola vez
-para esta nueva identidad; después el flujo bloquea la publicación si falta o cambia.
-Para mantenimiento a largo plazo el propietario debe respaldar ese keystore en un
-almacén de secretos: la conexión usada en esta reconstrucción no permite administrar
-secretos de Actions. Nunca se guarda una clave privada de firma en el repositorio.
+La firma estable está fijada en [`ci/signing.sha256`](ci/signing.sha256). El flujo recupera
+el keystore y bloquea la publicación si falta o cambia. Para mantenimiento a largo plazo
+el propietario debe respaldarlo en un almacén de secretos: esta conexión no permite
+administrar secretos de Actions. Nunca se publica la clave privada de firma.

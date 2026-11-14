@@ -1,4 +1,4 @@
-name: Asistente Pro - Android nativo verificado
+name: Aurea - Android nativo verificado
 on:
   push:
     branches: [main]
@@ -26,6 +26,10 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
+      - uses: actions/cache@v4
+        with:
+          path: .speech-cache/
+          key: aurea-spanish-speech-09b239888f633ef2
       - uses: actions/cache/restore@v4
         id: signing
         with:
@@ -44,13 +48,18 @@ jobs:
       - name: Compilar y ejecutar pruebas y capturas
         run: |
           chmod +x gradlew
-          ./gradlew :app:recordPaparazziDebug :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest --console=plain --stacktrace
+          ./gradlew :app:recordPaparazziDebug :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest :verification-app:assembleDebug --console=plain --stacktrace
           bash ci/verify-signing.sh app/build/outputs/apk/debug/app-debug.apk
       - name: Obtener APK anterior para comprobar coexistencia
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh run download 43547538450 --name asistente-pro-apk --dir "$RUNNER_TEMP/asistente-v2"
+      - name: Obtener Asistente Pro 3 para verificar actualización a Aurea
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 43553105184 --name asistente-pro-apk --dir "$RUNNER_TEMP/asistente-v3"
       - name: Habilitar KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -78,12 +87,17 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           script: bash ci/android-device-check.sh
       - name: Preparar APK comprobado
-        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/AsistentePro-Nativo-3.0.1.apk
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/Aurea-4.0.0.apk
+          cd app/build/outputs/apk/debug
+          sha256sum Aurea-4.0.0.apk > Aurea-4.0.0.apk.sha256
       - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
           name: asistente-pro-apk
-          path: app/build/outputs/apk/debug/AsistentePro-Nativo-3.0.1.apk
+          path: |
+            app/build/outputs/apk/debug/Aurea-4.0.0.apk
+            app/build/outputs/apk/debug/Aurea-4.0.0.apk.sha256
           if-no-files-found: error
           retention-days: 30
       - name: Publicar evidencias de Android y pruebas
