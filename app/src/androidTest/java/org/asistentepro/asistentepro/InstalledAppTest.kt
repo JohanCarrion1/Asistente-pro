@@ -59,7 +59,7 @@ class InstalledAppTest {
         capture("04-respuesta-nativa")
         compose.onNodeWithContentDescription("Abrir menú").performClick()
         compose.onNodeWithContentDescription("Abrir historial").performClick()
-        compose.onNodeWithText("cuánta batería tengo").assertIsDisplayed()
+        compose.onNode(hasText("cuánta batería tengo") and hasAnyAncestor(hasTestTag("conversation-history"))).assertIsDisplayed()
         capture("05-historial-instalado")
     }
 }

@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -119,7 +120,7 @@ import java.util.Locale
 @Composable fun ConversationHistory(state: AssistantState, events: AssistantCallbacks) {
     var query by remember { mutableStateOf("") }
     val filtered = state.conversations.filter { it.title.contains(query, true) || it.messages.any { message -> message.text.contains(query, true) } }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    LazyColumn(Modifier.fillMaxSize().testTag("conversation-history"), contentPadding = PaddingValues(22.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
         item {
             Text("Retoma una buena idea.", color = Cream, fontSize = 28.sp, lineHeight = 35.sp, letterSpacing = (-.8).sp)
             Text("Tu historial permanece en este dispositivo.", Modifier.padding(top = 10.dp), color = Muted, fontSize = 13.sp, lineHeight = 21.sp)

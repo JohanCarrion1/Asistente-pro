@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
-report=app/build/android-verification
+report="app/build/android-verification/api-$(adb shell getprop ro.build.version.sdk | tr -d '\r')"
 mkdir -p "$report"
-trap 'adb logcat -d -b crash > app/build/android-verification/crash-log.txt; adb pull /sdcard/Pictures/AsistenteProVerification app/build/android-verification/screenshots || true' EXIT
+collect_evidence() {
+  adb logcat -d -b crash > "$report/crash-log.txt"
+  adb pull /sdcard/Pictures/AsistenteProVerification "$report/screenshots" || true
+  cp -R app/build/outputs/androidTest-results "$report/" || true
+}
+trap collect_evidence EXIT
 if [[ -f "$RUNNER_TEMP/asistente-v2/app-debug.apk" ]]; then
   adb install "$RUNNER_TEMP/asistente-v2/app-debug.apk" | tee "$report/install-previous.txt"
 fi
