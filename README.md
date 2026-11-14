@@ -69,6 +69,24 @@ curl -X POST http://localhost:5000/comando -H "Content-Type: application/json" \
 
 ## 📲 Compilar APK (Android)
 
+### Descargar desde GitHub Actions
+
+1. Abre la pestaña **Actions** y selecciona **Build Asistente Pro APK**.
+2. Abre la ejecución más reciente con estado verde.
+3. En **Artifacts**, descarga **asistente-pro-apk** (inicia sesión en GitHub).
+4. Descomprime el ZIP e instala el `.apk` en tu teléfono Android ARM64.
+
+Cada push a `main` compila automáticamente. También puedes usar **Run workflow**.
+Los artefactos se conservan durante 30 días.
+
+Al abrir el APK, el backend se inicia en el teléfono y se solicita tu API key de
+Groq. Se guarda en el almacenamiento privado de la aplicación; no se incluye
+ninguna clave en el repositorio ni en el APK. La compilación usa Python 3.11.5,
+Kivy 2.3.0, NDK 25b y una revisión fija de python-for-android.
+
+Las acciones de linterna, foto, SMS y ubicación del backend actual son respuestas
+simuladas. El módulo de reconocimiento de voz todavía no está incluido.
+
 ### 1. Instalar Buildozer
 
 ```bash

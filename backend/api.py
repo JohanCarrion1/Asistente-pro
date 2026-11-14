@@ -27,7 +27,17 @@ from datetime import datetime
 import requests
 from flask import Flask, request, jsonify
 
-from config import API_KEY, MODELO, GROQ_API_URL, TIMEOUT
+try:
+    from .config import API_KEY, MODELO, GROQ_API_URL, TIMEOUT
+except ImportError:
+    try:
+        from .settings import API_KEY, MODELO, GROQ_API_URL, TIMEOUT
+    except ImportError:
+        # Ejecucion directa: python backend/api.py (run.sh).
+        try:
+            from config import API_KEY, MODELO, GROQ_API_URL, TIMEOUT
+        except ImportError:
+            from settings import API_KEY, MODELO, GROQ_API_URL, TIMEOUT
 
 # Modelos de respaldo si el configurado no está disponible en la cuenta
 MODELOS_FALLBACK = ["openai/gpt-oss-20b", "qwen/qwen3.6-27b", "shared/qwen3.5-32b"]
@@ -322,7 +332,7 @@ def banner():
 def main():
     banner()
     log("Iniciando Asistente Pro Backend...", "SUCCESS", MAGENTA)
-    log(f"API Key cargada: {API_KEY[:8]}...{API_KEY[-4:]}", "OK", GREEN)
+    log(f"API Key configurada: {bool(API_KEY)}", "OK", GREEN)
     log(f"Modelo activo: {MODELO}", "OK", GREEN)
     log(f"HTTP endpoint: {GROQ_API_URL}", "OK", GREEN)
     log("Servidor escuchando en http://0.0.0.0:5000", "INFO", CYAN)

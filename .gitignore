@@ -1,9 +1,11 @@
 .buildozer/
+.android-sdk/
 bin/
 __pycache__/
 *.pyc
 *.pyo
 backend/config.py
+groq_key.json
 .env
 .DS_Store
 *.log

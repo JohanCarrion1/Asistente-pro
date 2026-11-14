@@ -2,142 +2,73 @@ name: Build Asistente Pro APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
 
 permissions:
   contents: read
-  issues: write
+
+concurrency:
+  group: apk-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-apk:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 180
-
+    runs-on: ubuntu-22.04
+    timeout-minutes: 90
     steps:
-      - name: Checkout code
-        id: checkout
-        uses: actions/checkout@v4
-
-      - name: Liberar espacio en disco
-        id: disco
-        run: |
-          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /usr/local/.ghcup \
-            /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/share/boost || true
-          sudo docker image prune -a -f > /dev/null 2>&1 || true
-          df -h /
-
-      - name: Anadir swap extra (evita OOM al compilar CPython/recipes)
-        id: swap
-        run: |
-          sudo swapoff -a || true
-          sudo fallocate -l 10G /swapfile || true
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile || true
-          free -h
-
-      - name: Configurar Python
-        id: python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-
-      - name: Configurar Java
-        id: java
-        uses: actions/setup-java@v4
+          python-version: '3.11'
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: "17"
-
-      - name: Instalar dependencias del sistema
-        id: apt
+          java-version: '17'
+      - name: Instalar dependencias
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            build-essential git zip unzip patch \
-            autoconf automake libtool libtool-bin libltdl-dev autoconf-archive \
-            pkg-config cmake ccache \
-            libffi-dev libssl-dev libjpeg-dev zlib1g-dev \
-            libncurses-dev libncurses5-dev libncursesw5-dev
-
-      - name: Instalar Buildozer y Cython (combinacion recomendada por Kivy)
-        id: pip
+            build-essential git zip unzip patch autoconf automake libtool libtool-bin \
+            libltdl-dev pkg-config cmake ccache libffi-dev libssl-dev zlib1g-dev \
+            libncurses5-dev libncursesw5-dev
+          python -m pip install 'pip==24.0' 'setuptools==69.5.1' 'wheel==0.43.0'
+          python -m pip install 'buildozer==1.5.0' 'Cython==0.29.36'
+      - name: Verificar codigo y backend
         run: |
-          python -m pip install --upgrade pip setuptools wheel
-          python -m pip install "buildozer" "cython==0.29.34"
-          buildozer --version
-
-      - name: Limpiar compilaciones anteriores
-        id: clean
+          python -m pip install -r requirements.txt
+          python -m compileall -q main.py app.py backend tests
+          python -m unittest discover -s tests -v
+      - name: Conservar firma debug entre compilaciones
+        uses: actions/cache@v4
+        with:
+          path: ~/.android/debug.keystore
+          key: asistente-pro-debug-keystore-v1
+      - name: Preparar SDK y build-tools compatibles
         run: |
-          rm -rf .buildozer bin
-
+          curl --fail --location --retry 3 https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -o /tmp/android-tools.zip
+          mkdir -p .android-sdk
+          unzip -q /tmp/android-tools.zip -d .android-sdk
+          mv .android-sdk/cmdline-tools .android-sdk/tools
+          set +o pipefail
+          yes | .android-sdk/tools/bin/sdkmanager --sdk_root="$PWD/.android-sdk" --licenses > /dev/null
+          set -o pipefail
+          .android-sdk/tools/bin/sdkmanager --sdk_root="$PWD/.android-sdk" 'platform-tools' 'platforms;android-33' 'build-tools;33.0.2' 'build-tools;30.0.3'
       - name: Compilar APK
-        id: buildozer
         run: |
           set -o pipefail
           buildozer -v android debug 2>&1 | tee buildozer_log.txt
-
-      - name: Subir log de compilacion si falla
-        id: logfail
+      - name: Subir APK descargable
+        uses: actions/upload-artifact@v4
+        with:
+          name: asistente-pro-apk
+          path: bin/*.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Subir log si falla
         if: failure()
         uses: actions/upload-artifact@v4
         with:
           name: buildozer-log-fallo
           path: buildozer_log.txt
           if-no-files-found: ignore
-
-      - name: Reportar fallo en issue
-        if: failure()
-        env:
-          GH_TOKEN: ${{ github.token }}
-          CHECKOUT: ${{ steps.checkout.outcome }}
-          DISCO: ${{ steps.disco.outcome }}
-          SWAP: ${{ steps.swap.outcome }}
-          PYTHON: ${{ steps.python.outcome }}
-          JAVA: ${{ steps.java.outcome }}
-          APT: ${{ steps.apt.outcome }}
-          PIP: ${{ steps.pip.outcome }}
-          BUILD: ${{ steps.buildozer.outcome }}
-        run: |
-          {
-            echo "La compilacion del APK fallo en el run [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
-            echo ""
-            echo "**Estado de los pasos:**"
-            echo "| Paso | Resultado |"
-            echo "| --- | --- |"
-            echo "| checkout | ${CHECKOUT} |"
-            echo "| liberar disco | ${DISCO} |"
-            echo "| swap | ${SWAP} |"
-            echo "| python | ${PYTHON} |"
-            echo "| java | ${JAVA} |"
-            echo "| apt | ${APT} |"
-            echo "| pip/buildozer | ${PIP} |"
-            echo "| **compilar APK** | ${BUILD} |"
-            echo ""
-            echo "**Ultimas 200 lineas del log (buildozer_log.txt):**"
-            printf '\n```\n'
-            tail -n 200 buildozer_log.txt 2>/dev/null || echo "(no hay log)"
-            printf '\n```\n'
-          } > issue_body.md
-          gh issue create \
-            --title "CI fallo: run #${{ github.run_number }}" \
-            --body-file issue_body.md
-
-      - name: Reportar exito en issue
-        if: success()
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh issue create \
-            --title "CI OK: APK compilado (run #${{ github.run_number }})" \
-            --body "El APK se compilo correctamente y quedo como artefacto \`asistente-pro-apk\` en el run [#${{ github.run_number }}](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})."
-
-      - name: Subir APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: asistente-pro-apk
-          path: bin/*.apk
-          if-no-files-found: error

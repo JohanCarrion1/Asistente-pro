@@ -204,7 +204,7 @@ class PantallaBienvenida(Screen):
             font_size=sp(10),
             color=get_color_from_hex(COLORES["acento"]),
             halign="center",
-            font_name="DejaVuSansMono",
+            font_name="Roboto",
         )
         layout.add_widget(self.lbl_banner)
 
@@ -767,7 +767,7 @@ class PantallaBuscador(Screen):
                 valign="top",
             )
             etiqueta.bind(
-                texture_size=lambda e: setattr(e, "height", e.texture_size[1] + dp(8))
+                texture_size=lambda e, value: setattr(e, "height", value[1] + dp(8))
                 if e.texture_size else None
             )
             self.contenedor.add_widget(etiqueta)
@@ -777,6 +777,46 @@ class PantallaBuscador(Screen):
 # Aplicación principal
 # ---------------------------------------------------------------------------
 class AsistenteProApp(App):
+    def on_start(self):
+        from kivy.utils import platform
+        if platform != "android":
+            return
+        from backend import api
+        self.backend_api = api
+        self.key_path = os.path.join(self.user_data_dir, "groq_key.json")
+        try:
+            with open(self.key_path, encoding="utf-8") as archivo:
+                api.API_KEY = json.load(archivo).get("api_key", "")
+        except (OSError, ValueError, AttributeError):
+            pass
+        threading.Thread(
+            target=lambda: api.app.run(
+                host="127.0.0.1", port=5000, threaded=True,
+                debug=False, use_reloader=False,
+            ), daemon=True,
+        ).start()
+        if not api.API_KEY:
+            Clock.schedule_once(lambda dt: self.configurar_api(), 1)
+
+    def configurar_api(self):
+        from kivy.uix.popup import Popup
+        panel = BoxLayout(orientation="vertical", spacing=dp(10), padding=dp(10))
+        entrada = TextInput(hint_text="Pega tu API key de Groq", password=True, multiline=False)
+        panel.add_widget(entrada)
+        guardar = Button(text="Guardar en este dispositivo", size_hint_y=None, height=dp(48))
+        panel.add_widget(guardar)
+        popup = Popup(title="Configurar Groq", content=panel, size_hint=(0.9, 0.4))
+        def confirmar(*args):
+            clave = entrada.text.strip()
+            if not clave:
+                return
+            self.backend_api.API_KEY = clave
+            with open(self.key_path, "w", encoding="utf-8") as archivo:
+                json.dump({"api_key": clave}, archivo)
+            popup.dismiss()
+        guardar.bind(on_release=confirmar)
+        popup.open()
+
     def build(self):
         self.title = "Asistente Pro"
         self.icon = "icons/icon.png" if os.path.exists("icons/icon.png") else ""
@@ -845,7 +885,7 @@ class AsistenteProApp(App):
             title="Asistente Pro",
             content=etiqueta,
             size_hint=(0.8, 0.25),
-            background=get_color_from_hex(COLORES["superficie"]),
+            background_color=get_color_from_hex(COLORES["superficie"]),
             title_color=get_color_from_hex(COLORES["primario_claro"]),
         )
         popup.open()
