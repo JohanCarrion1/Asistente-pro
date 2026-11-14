@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.hardware.camera2.CameraCharacteristics
 import android.hardware.camera2.CameraManager
 import android.net.Uri
+import android.media.AudioManager
 import android.os.BatteryManager
 import android.os.Bundle
 import android.provider.AlarmClock
@@ -158,18 +159,37 @@ class MainActivity : ComponentActivity() {
                     manager.setTorchMode(camera, enabled); model.torch(enabled)
                     model.deviceResult(if (enabled) "Linterna encendida." else "Linterna apagada.")
                 }
-                DeviceAction.Camera -> startActivity(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA))
-                DeviceAction.Wifi -> startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
-                DeviceAction.Sms -> startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:")))
+                DeviceAction.Camera -> { startActivity(Intent(MediaStore.INTENT_ACTION_STILL_IMAGE_CAMERA)); model.deviceResult("Abrí la cámara. Puedes tomar la foto desde allí.") }
+                DeviceAction.Wifi -> { startActivity(Intent(Settings.ACTION_WIFI_SETTINGS)); model.deviceResult("Abrí los ajustes de Wi-Fi para que elijas la red.") }
+                DeviceAction.Sms -> { startActivity(Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:"))); model.deviceResult("Abrí Mensajes. Elige el destinatario y confirma el envío.") }
+                DeviceAction.Help -> model.deviceResult("Puedes hablar o escribir para consultar tu batería, encender la linterna, abrir la cámara o tus apps, cambiar el volumen, crear alarmas y temporizadores. Estas acciones no necesitan una clave de IA. Para preguntas generales, conecta Groq en Ajustes. Android te pedirá confirmar las acciones que lo requieran.")
+                is DeviceAction.Volume -> {
+                    val audio = getSystemService(AudioManager::class.java)
+                    audio.adjustStreamVolume(AudioManager.STREAM_MUSIC, if (action.raise) AudioManager.ADJUST_RAISE else AudioManager.ADJUST_LOWER, AudioManager.FLAG_SHOW_UI)
+                    model.deviceResult("Volumen multimedia: ${audio.getStreamVolume(AudioManager.STREAM_MUSIC)} de ${audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)}.")
+                }
+                is DeviceAction.OpenApp -> {
+                    val intent = Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER)
+                    val activity = packageManager.queryIntentActivities(intent, 0).firstOrNull {
+                        java.text.Normalizer.normalize(it.loadLabel(packageManager).toString().lowercase(), java.text.Normalizer.Form.NFD).replace("\\p{M}+".toRegex(), "").contains(action.name)
+                    }
+                    if (activity == null) { model.error("No encuentro ${action.name} entre tus aplicaciones instaladas."); return }
+                    startActivity(Intent.makeMainActivity(android.content.ComponentName(activity.activityInfo.packageName, activity.activityInfo.name)))
+                    model.deviceResult("Abrí ${activity.loadLabel(packageManager)}.")
+                }
+                is DeviceAction.Alarm -> { startActivity(Intent(AlarmClock.ACTION_SET_ALARM).apply {
+                    putExtra(AlarmClock.EXTRA_HOUR, action.hour); putExtra(AlarmClock.EXTRA_MINUTES, action.minute)
+                    putExtra(AlarmClock.EXTRA_MESSAGE, "Asistente Pro"); putExtra(AlarmClock.EXTRA_SKIP_UI, false)
+                }); model.deviceResult("Abrí Reloj. Revisa y confirma la alarma.") }
                 DeviceAction.Battery -> {
                     val level = getSystemService(BatteryManager::class.java).getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
                     if (level in 0..100) model.deviceResult("Tu batería está al $level %.") else model.error("Android no pudo informar el nivel de batería.")
                 }
-                is DeviceAction.Timer -> startActivity(Intent(AlarmClock.ACTION_SET_TIMER).apply {
+                is DeviceAction.Timer -> { startActivity(Intent(AlarmClock.ACTION_SET_TIMER).apply {
                     putExtra(AlarmClock.EXTRA_LENGTH, action.seconds)
                     putExtra(AlarmClock.EXTRA_MESSAGE, "Asistente Pro")
                     putExtra(AlarmClock.EXTRA_SKIP_UI, false)
-                })
+                }); model.deviceResult("Abrí Reloj con un temporizador de ${action.seconds} segundos. Confírmalo allí.") }
             }
         }.onFailure { model.error("Android no pudo abrir esta función. Comprueba los permisos y las aplicaciones instaladas.") }
     }

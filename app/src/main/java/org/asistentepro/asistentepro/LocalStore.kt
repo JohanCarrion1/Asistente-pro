@@ -35,6 +35,9 @@ class LocalStore(context: Context) {
         check(preferences.edit().putString("groq_key", data).commit()) { "No se pudo guardar la clave" }
     }
     fun deleteKey() { preferences.edit().remove("groq_key").apply() }
+    var draft: String
+        get() = preferences.getString("draft", "") ?: ""
+        set(value) { preferences.edit().putString("draft", value).apply() }
     var readAloud: Boolean
         get() = preferences.getBoolean("read_aloud", false)
         set(value) { preferences.edit().putBoolean("read_aloud", value).apply() }

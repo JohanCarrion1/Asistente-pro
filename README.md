@@ -1,66 +1,68 @@
-# Asistente Pro 2.0
+# Asistente Pro · Android nativo
 
-Asistente Android nativo en **Kotlin + Jetpack Compose**, con diseño carbón y jade,
-conversaciones con Groq, voz de Android e icono adaptativo propio.
+Aplicación Android en **Kotlin y Jetpack Compose**. Interfaz negra con acentos azul/violeta,
+icono propio, menú lateral, historial buscable, chat, voz de Android y acciones del teléfono.
+El repositorio activo ya no contiene Python, Kivy, Flask ni Buildozer. Las versiones antiguas
+se conservan exclusivamente en el historial de Git.
 
-## Vista previa
+## Instalar la reconstrucción 3.0.1
 
-<img src="docs/previews/inicio.png" width="230" alt="Inicio nativo en carbón y jade" /> <img src="docs/previews/chat.png" width="230" alt="Conversación con el asistente" /> <img src="docs/previews/ajustes.png" width="230" alt="Ajustes de IA y privacidad" />
+Abre la ejecución verde más reciente de **Actions → Asistente Pro - Android nativo verificado**.
+Descarga **asistente-pro-apk**, descomprime e instala **AsistentePro-Nativo-3.0.1.apk**.
+Android 8.0 o posterior; ARM y x86. Abre el icono azul/violeta nuevo.
 
-[Nuevo icono](docs/previews/icono.png). Capturas renderizadas desde los componentes Compose de la aplicación.
+Esta app tiene el identificador independiente **`app.asistentepro.android`**. Puede coexistir
+con `org.asistentepro.asistentepro`, evitando el conflicto entre las firmas de los APK
+antiguos. **No necesitas borrar los datos ni desinstalar la versión antigua.** Las apps
+son independientes y Android no permite leer automáticamente los datos privados de la otra.
 
-## Descargar el APK
+## Ver la interfaz
 
-En **Actions → Asistente Pro - Android nativo**, abre la ejecución verde más reciente.
-En **Artifacts**, descarga **asistente-pro-apk**, descomprime el ZIP e instala
-`app-debug.apk`. Compatible con Android 8.0 o posterior, sin dependencia de Python,
-Kivy, Flask, WebView ni servidor local. El APK nativo sirve para ARM y x86.
+<img src="docs/previews/inicio.png" width="225" alt="Inicio" /> <img src="docs/previews/menu.png" width="225" alt="Menú lateral" /> <img src="docs/previews/chat.png" width="225" alt="Conversación" />
 
-La firma debug usa la misma caché que la versión anterior. Si una instalación antigua
-tiene otra firma, Android pedirá desinstalarla antes de instalar esta versión.
+[Icono nuevo](docs/previews/icono.png) · [Ajustes](docs/previews/ajustes.png).
+Las capturas renderizadas se complementan con capturas y pruebas de una instalación real
+en el emulador de Android publicadas por Actions.
 
-## Funciones
+## Qué hace
 
-- Interfaz adaptable, chat, estados de escucha y respuesta, núcleo animado.
-- Reconocimiento de voz mediante el servicio instalado de Android. El micrófono
-  se activa al tocarlo; no hay escucha permanente ni palabra de activación.
-- Respuestas habladas con TextToSpeech; requiere una voz en español instalada.
-- Conversaciones con contexto, cancelación de solicitudes, copiar y leer respuestas.
-- Historial local, reabrir conversaciones, eliminación individual o completa.
-- Clave de Groq cifrada con Android Keystore; no se incorpora ninguna clave al APK.
-- Modelos Groq rápido y profundo seleccionables en Ajustes.
-- Linterna real, abrir cámara, ajustes Wi-Fi, temporizador y batería.
-- Comandos como `enciende la linterna`, `apaga la linterna`, `abre la cámara`,
-  `temporizador de 5 minutos` y `cuánta batería tengo` funcionan sin clave de IA.
-- Los temporizadores se confirman en la app de reloj. `abre mensajes` abre la app
-  SMS; el usuario elige destinatario y confirma el envío.
+- Chat con Groq y contexto de la conversación, cancelación, copiar y leer respuestas.
+- Voz al tocar el micrófono mediante el servicio de reconocimiento de Android.
+- Menú lateral con búsqueda, conversaciones guardadas y eliminación de historial.
+- Borrador conservado localmente para retomar lo que estabas escribiendo.
+- Clave de Groq cifrada con Android Keystore; nunca se incluye una clave de IA en el APK.
+- Acciones nativas sin clave de IA: batería, linterna, cámara, ajustes Wi-Fi, volumen,
+  abrir apps instaladas, alarmas, temporizadores y abrir mensajes.
+- Ejemplos: «cuánta batería tengo», «enciende la linterna», «abre Spotify»,
+  «sube el volumen», «pon alarma a las 7:00 AM», «temporizador de 5 minutos».
 
-La IA no controla silenciosamente el teléfono ni simula acciones ejecutadas.
-Android puede limitar las funciones disponibles según permisos y apps instaladas.
+Los temporizadores, alarmas y mensajes se abren en las apps del sistema y Android puede
+pedir confirmación. No hay escucha permanente, palabra de activación ni cierre forzoso
+de otras apps. La disponibilidad de voz y funciones depende de permisos, hardware y
+servicios instalados; no se simulan acciones ejecutadas.
 
-## Configurar IA
+Para consultas de IA abre **Ajustes**, obtén una clave en <https://console.groq.com/keys>
+y guárdala. Los últimos mensajes necesarios se envían a Groq; el historial permanece
+en el dispositivo. No se transfiere automáticamente la clave de instalaciones antiguas.
 
-Abre **Ajustes**, obtén una clave en <https://console.groq.com/keys> y guárdala.
-La clave solo se usa para consultar Groq. Los últimos mensajes necesarios para
-responder se envían al proveedor; el historial permanece en el almacenamiento
-privado de esta app. La voz utiliza el servicio de reconocimiento de Android.
+## Verificar y compilar
 
-## Compilar y verificar
-
-Requisitos: JDK 17, Android SDK 35.
+JDK 17, Android SDK 35, Gradle Wrapper incluido:
 
 ```sh
-./gradlew :app:assembleDebug
-./gradlew :app:recordPaparazziDebug :app:lintDebug
+./gradlew :app:recordPaparazziDebug :app:lintDebug :app:assembleDebug
+./gradlew :app:connectedDebugAndroidTest
 ```
 
-Actions publica el APK y **asistente-pro-vistas-y-pruebas** con capturas de inicio,
-chat, ajustes y pantalla pequeña con texto ampliado. Las pruebas también verifican
-los comandos nativos, contexto enviado a Groq y errores de autenticación y respuesta.
-Las capturas verifican renderizado; los permisos, la cámara y la voz deben comprobarse
-en un dispositivo real, pues dependen del hardware y de los servicios de Android.
+Actions comprueba la ausencia del runtime anterior, la firma del APK, los comandos,
+peticiones y errores de Groq, renderizado en diferentes tamaños y pruebas instrumentadas
+de instalación/actualización/arranque, menú, teclado, batería e historial en Android API 30 y 35.
+También comprueba coexistencia con el APK 2.0 cuando su artefacto sigue disponible.
+El APK se publica **después** de pasar la prueba en el dispositivo virtual.
 
-## Estructura
-
-`app/` contiene toda la aplicación nativa. Los archivos Python y Buildozer de la raíz
-se conservan como referencia de la versión anterior y ya no se compilan en Actions.
+La firma de distribución de pruebas tiene la huella SHA-256
+`305170c9d2d00d1739c9e1ce6f0d91f69707a2a816ed1a76de2c976d66027895`.
+El flujo recupera el keystore existente y bloquea la publicación si falta o cambia.
+Para mantenimiento a largo plazo el propietario debe respaldar ese keystore en un
+almacén de secretos: la conexión usada en esta reconstrucción no permite administrar
+secretos de Actions. Nunca se guarda una clave privada de firma en el repositorio.

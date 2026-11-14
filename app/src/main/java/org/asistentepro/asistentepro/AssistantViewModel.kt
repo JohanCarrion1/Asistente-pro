@@ -17,7 +17,7 @@ import java.util.UUID
 class AssistantViewModel(application: Application) : AndroidViewModel(application) {
     private val store = LocalStore(application)
     private val groq = GroqClient()
-    private val mutable = MutableStateFlow(AssistantState(hasKey = store.apiKey().isNotBlank(), conversations = store.conversations(), readAloud = store.readAloud, model = store.model))
+    private val mutable = MutableStateFlow(AssistantState(hasKey = store.apiKey().isNotBlank(), conversations = store.conversations(), readAloud = store.readAloud, model = store.model, draft = store.draft))
     val state = mutable.asStateFlow()
     private var conversationId = UUID.randomUUID().toString()
     private var request: Job? = null
@@ -25,7 +25,7 @@ class AssistantViewModel(application: Application) : AndroidViewModel(applicatio
     var onDeviceAction: ((DeviceAction) -> Unit)? = null
     var onSpeak: ((String) -> Unit)? = null
 
-    fun draft(value: String) { mutable.update { it.copy(draft = value) } }
+    fun draft(value: String) { store.draft = value; mutable.update { it.copy(draft = value) } }
     fun keyDraft(value: String) { mutable.update { it.copy(keyDraft = value, error = null) } }
     fun page(value: Page) { mutable.update { it.copy(page = value, error = null, notice = null, keyDraft = "") } }
     fun phase(value: VoicePhase) { mutable.update { it.copy(phase = value) } }
@@ -42,8 +42,8 @@ class AssistantViewModel(application: Application) : AndroidViewModel(applicatio
         }.onFailure { error("No se pudo guardar la clave en este dispositivo.") }
     }
     fun removeKey() { store.deleteKey(); mutable.update { it.copy(hasKey = false, keyDraft = "", notice = "Clave eliminada.") } }
-    fun clearHistory() { stop(); store.saveConversations(emptyList()); conversationId = UUID.randomUUID().toString(); mutable.update { it.copy(conversations = emptyList(), messages = emptyList(), notice = "Historial eliminado.") } }
-    fun newConversation() { stop(); conversationId = UUID.randomUUID().toString(); mutable.update { it.copy(page = Page.Assistant, messages = emptyList(), draft = "", error = null, notice = null) } }
+    fun clearHistory() { stop(); store.draft = ""; store.saveConversations(emptyList()); conversationId = UUID.randomUUID().toString(); mutable.update { it.copy(conversations = emptyList(), messages = emptyList(), draft = "", notice = "Historial eliminado.") } }
+    fun newConversation() { stop(); store.draft = ""; conversationId = UUID.randomUUID().toString(); mutable.update { it.copy(page = Page.Assistant, messages = emptyList(), draft = "", error = null, notice = null) } }
     fun openConversation(item: Conversation) { stop(); conversationId = item.id; mutable.update { it.copy(page = Page.Assistant, messages = item.messages, error = null) } }
     fun deleteConversation(item: Conversation) {
         val items = state.value.conversations.filterNot { it.id == item.id }
@@ -75,11 +75,13 @@ class AssistantViewModel(application: Application) : AndroidViewModel(applicatio
         if (text.isEmpty() || request?.isActive == true) return
         val action = ActionRouter.parse(text)
         if (action != null) {
+            store.draft = ""
             mutable.update { it.copy(page = Page.Assistant, draft = "", error = null, phase = VoicePhase.Idle) }
             append(text, true); onDeviceAction?.invoke(action); return
         }
-        if (!state.value.hasKey) { mutable.update { it.copy(page = Page.Settings, draft = text, error = "Añade tu clave de Groq para conversar. Las acciones del teléfono no necesitan clave.") }; return }
+        if (!state.value.hasKey) { store.draft = text; mutable.update { it.copy(page = Page.Settings, draft = text, error = "Añade tu clave de Groq para conversar. Las acciones del teléfono no necesitan clave.") }; return }
         mutable.update { it.copy(page = Page.Assistant, draft = "", error = null, phase = VoicePhase.Thinking) }
+        store.draft = ""
         append(text, true)
         val activeId = conversationId
         val history = state.value.messages
@@ -101,6 +103,7 @@ class AssistantViewModel(application: Application) : AndroidViewModel(applicatio
             catch (error: Exception) {
                 if (activeId == conversationId) {
                     val message = if (error is AssistantException) error.message!! else "No pude conectar. Comprueba tu conexión e inténtalo de nuevo."
+                    store.draft = text
                     mutable.update { it.copy(error = message, draft = text, phase = VoicePhase.Idle) }
                 }
             }

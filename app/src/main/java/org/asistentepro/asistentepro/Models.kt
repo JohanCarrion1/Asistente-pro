@@ -28,12 +28,27 @@ sealed interface DeviceAction {
     data object Battery : DeviceAction
     data class Timer(val seconds: Int) : DeviceAction
     data object Sms : DeviceAction
+    data object Help : DeviceAction
+    data class OpenApp(val name: String) : DeviceAction
+    data class Alarm(val hour: Int, val minute: Int) : DeviceAction
+    data class Volume(val raise: Boolean) : DeviceAction
 }
 
 object ActionRouter {
     fun parse(text: String): DeviceAction? {
         val value = Normalizer.normalize(text.lowercase(), Normalizer.Form.NFD)
-            .replace("\\p{M}+".toRegex(), "").trim()
+            .replace("\\p{M}+".toRegex(), "").trim().trim('¿', '?', '¡', '!', '.', ',').trim()
+        if (value in listOf("ayuda", "que puedes hacer", "como uso asistente pro", "como te uso")) return DeviceAction.Help
+        if (value in listOf("sube el volumen", "subir volumen", "sube volumen")) return DeviceAction.Volume(true)
+        if (value in listOf("baja el volumen", "bajar volumen", "baja volumen")) return DeviceAction.Volume(false)
+        if (value.startsWith("pon alarma") || value.startsWith("pon una alarma") || value.startsWith("alarma a")) {
+            val match = "\\b(\\d{1,2})(?::(\\d{2}))?\\s*(am|pm)?\\b".toRegex().find(value) ?: return null
+            var hour = match.groupValues[1].toInt()
+            val minute = match.groupValues[2].toIntOrNull() ?: 0
+            when (match.groupValues[3]) { "pm" -> if (hour < 12) hour += 12; "am" -> if (hour == 12) hour = 0 }
+            if (hour !in 0..23 || minute !in 0..59) return null
+            return DeviceAction.Alarm(hour, minute)
+        }
         if (value.contains("linterna")) {
             if (value.startsWith("como") || value.contains("explica")) return null
             return DeviceAction.Torch(when {
@@ -47,6 +62,7 @@ object ActionRouter {
         if (value in listOf("wifi", "wi-fi", "abre wifi", "ajustes wifi", "abre ajustes wifi")) return DeviceAction.Wifi
         if (value.contains("bateria") && (value.contains("cuanta") || value.contains("estado") || value == "bateria")) return DeviceAction.Battery
         if (value in listOf("sms", "enviar sms", "abre mensajes", "abrir mensajes")) return DeviceAction.Sms
+        if (value.startsWith("abre ") && value.length > 5) return DeviceAction.OpenApp(value.removePrefix("abre ").removePrefix("la app ").trim())
         if (listOf("temporizador", "pon temporizador", "pon un temporizador", "inicia un temporizador", "cuenta atras").any { value.startsWith(it) }) {
             val amount = "\\b(\\d{1,4})\\b".toRegex().find(value)?.groupValues?.get(1)?.toIntOrNull() ?: return null
             val seconds = amount * if (value.contains("segundo")) 1 else if (value.contains("hora")) 3600 else 60

@@ -1,17 +1,18 @@
-name: Asistente Pro - Android nativo
+name: Asistente Pro - Android nativo verificado
 on:
   push:
     branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
+  actions: read
 concurrency:
   group: android-${{ github.ref }}
   cancel-in-progress: true
 jobs:
-  build:
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
+  android:
+    runs-on: ubuntu-22.04
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -22,32 +23,68 @@ jobs:
         with:
           packages: 'platform-tools platforms;android-35 build-tools;35.0.0'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Mantener firma compatible entre APKs
-        uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
         with:
           path: ~/.android/debug.keystore
           key: asistente-pro-debug-keystore-v1
-      - name: Pruebas, vistas y APK nativo
+      - name: Comprobar proyecto nativo y firma estable
+        run: |
+          bash ci/verify-native.sh
+          bash ci/verify-signing.sh
+      - name: Compilar y ejecutar pruebas y capturas
         run: |
           chmod +x gradlew
-          ./gradlew :app:recordPaparazziDebug :app:lintDebug :app:assembleDebug --console=plain --stacktrace
-      - name: Verificar firma del APK
+          ./gradlew :app:recordPaparazziDebug :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest --console=plain --stacktrace
+          bash ci/verify-signing.sh app/build/outputs/apk/debug/app-debug.apk
+      - name: Obtener APK anterior para comprobar coexistencia
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh run download 43547538450 --name asistente-pro-apk --dir "$RUNNER_TEMP/asistente-v2"
+      - name: Habilitar KVM
         run: |
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose app/build/outputs/apk/debug/app-debug.apk
-      - name: Subir APK
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Instalar, actualizar, arrancar y navegar en Android
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 30
+          target: default
+          arch: x86_64
+          profile: pixel_3a
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          script: bash ci/android-device-check.sh
+      - name: Verificar también Android 15
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_7
+          avd-name: asistente-api35
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
+          script: bash ci/android-device-check.sh
+      - name: Preparar APK comprobado
+        run: cp app/build/outputs/apk/debug/app-debug.apk app/build/outputs/apk/debug/AsistentePro-Nativo-3.0.1.apk
+      - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
           name: asistente-pro-apk
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/AsistentePro-Nativo-3.0.1.apk
           if-no-files-found: error
           retention-days: 30
-      - name: Subir capturas y pruebas
+      - name: Publicar evidencias de Android y pruebas
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: asistente-pro-vistas-y-pruebas
+          name: asistente-pro-pruebas-android
           path: |
+            app/build/android-verification/
             app/build/reports/
+            app/build/outputs/androidTest-results/
             app/src/test/snapshots/images/
           if-no-files-found: ignore
           retention-days: 30

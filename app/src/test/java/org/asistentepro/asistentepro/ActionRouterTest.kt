@@ -4,6 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ActionRouterTest {
+    @Test fun `native app alarm help and volume commands`() {
+        assertEquals(DeviceAction.OpenApp("spotify"), ActionRouter.parse("Abre Spotify"))
+        assertEquals(DeviceAction.Alarm(7, 0), ActionRouter.parse("Pon alarma a las 7:00 AM"))
+        assertEquals(DeviceAction.Alarm(19, 30), ActionRouter.parse("Pon alarma a las 7:30 PM"))
+        assertEquals(DeviceAction.Volume(true), ActionRouter.parse("Sube el volumen"))
+        assertEquals(DeviceAction.Help, ActionRouter.parse("Qué puedes hacer"))
+    }
     @Test fun `recognizes native commands with accents`() {
         assertEquals(DeviceAction.Camera, ActionRouter.parse("abre la cámara"))
         assertEquals(DeviceAction.Torch(false), ActionRouter.parse("apaga la linterna"))

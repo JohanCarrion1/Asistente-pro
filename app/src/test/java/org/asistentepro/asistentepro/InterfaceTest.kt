@@ -23,7 +23,7 @@ class InterfaceTest {
         val icon = android.widget.ImageView(paparazzi.context).apply {
             // Layoutlib does not supply an OEM adaptive-icon mask. Render the
             // exact foreground vector; Android's launcher supplies its mask.
-            setImageResource(R.drawable.ic_brand)
+            setImageResource(R.drawable.assistant_brand)
             setBackgroundColor(android.graphics.Color.rgb(13, 21, 20))
             setPadding(82, 82, 82, 82)
         }
@@ -37,5 +37,11 @@ class InterfaceTest {
                 AsistenteApp(AssistantState(), animate = false)
             }
         }
+    }
+    @Test fun drawer() {
+        paparazzi.snapshot { AsistenteApp(AssistantState(conversations = listOf(
+            Conversation("1", "Organizar mi semana", listOf(Message("a", "Organizar mi semana", true))),
+            Conversation("2", "Una idea para mi apiario", listOf(Message("b", "Una idea para mi apiario", true))),
+        )), animate = false, drawerOpen = true) }
     }
 }
