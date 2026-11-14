@@ -1,4 +1,10 @@
 .buildozer/
+.gradle/
+.kotlin/
+build/
+local.properties
+*.hprof
+/app/src/test/snapshots/
 .android-sdk/
 bin/
 __pycache__/

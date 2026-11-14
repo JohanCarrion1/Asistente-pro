@@ -1,153 +1,66 @@
-# Asistente Pro - IA Potente con Groq
+# Asistente Pro 2.0
 
-Asistente personal Android con **IA ultra rápida** impulsada por la API de **Groq** (modelo `llama-3.1-8b-instant`). Controla tu dispositivo por **texto y voz**, consulta información del sistema y ejecuta acciones rápidas — todo con una interfaz moderna Material Design oscura.
+Asistente Android nativo en **Kotlin + Jetpack Compose**, con diseño carbón y jade,
+conversaciones con Groq, voz de Android e icono adaptativo propio.
 
-## 🚀 Características
+## Vista previa
 
-- **🤖 IA con Groq (Llama 3.1 8B - ultra rápida)**: Respuestas en menos de 1 segundo.
-- **🎤 Control por voz y texto**: Escribe o habla; el asistente te entiende.
-- **📱 Control del dispositivo**: Vibrar, linterna, batería, foto, ubicación, SMS, apps.
-- **🌐 Funciona con internet**: Backend Flask local + API remota de Groq.
-- **⚙️ Monitor de sistema**: CPU, RAM y batería en tiempo real (psutil).
-- **🔍 Historial con búsqueda**: Encuentra cualquier conversación.
-- **✨ Animaciones suaves**: Banner ASCII animado, transiciones fluidas, indicador "Escribiendo...".
+<img src="docs/previews/inicio.png" width="230" alt="Inicio nativo en carbón y jade" /> <img src="docs/previews/chat.png" width="230" alt="Conversación con el asistente" /> <img src="docs/previews/ajustes.png" width="230" alt="Ajustes de IA y privacidad" />
 
-## 📁 Estructura
+[Nuevo icono](docs/previews/icono.png). Capturas renderizadas desde los componentes Compose de la aplicación.
 
-```
-AsistentePro/
-├── app.py                  # Frontend Kivy (Material Design)
-├── buildozer.spec          # Configuración para compilar APK
-├── run.sh                  # Inicia backend + app
-├── build_apk.sh            # Compila el APK
-├── backend/
-│   ├── api.py              # API Flask (puerto 5000)
-│   └── config.py           # API Key y configuración de Groq
-└── icons/
-    ├── icon.png            # Icono generado (512x512)
-    └── generar_icono.py    # Script que genera el icono
-```
+## Descargar el APK
 
-## 🛠 Instalación
+En **Actions → Asistente Pro - Android nativo**, abre la ejecución verde más reciente.
+En **Artifacts**, descarga **asistente-pro-apk**, descomprime el ZIP e instala
+`app-debug.apk`. Compatible con Android 8.0 o posterior, sin dependencia de Python,
+Kivy, Flask, WebView ni servidor local. El APK nativo sirve para ARM y x86.
 
-### 1. Requisitos (escritorio/Linux)
+La firma debug usa la misma caché que la versión anterior. Si una instalación antigua
+tiene otra firma, Android pedirá desinstalarla antes de instalar esta versión.
 
-```bash
-sudo apt update
-sudo apt install -y python3 python3-pip ffmpeg
-pip3 install --user kivy==2.3.1 flask==3.1.3 requests==2.34.2 \
-    SpeechRecognition==3.17.0 gTTS==2.5.4 pydub==0.25.1 \
-    Pillow==12.3.0 psutil==7.2.2
-```
+## Funciones
 
-### 2. Configurar la API Key
+- Interfaz adaptable, chat, estados de escucha y respuesta, núcleo animado.
+- Reconocimiento de voz mediante el servicio instalado de Android. El micrófono
+  se activa al tocarlo; no hay escucha permanente ni palabra de activación.
+- Respuestas habladas con TextToSpeech; requiere una voz en español instalada.
+- Conversaciones con contexto, cancelación de solicitudes, copiar y leer respuestas.
+- Historial local, reabrir conversaciones, eliminación individual o completa.
+- Clave de Groq cifrada con Android Keystore; no se incorpora ninguna clave al APK.
+- Modelos Groq rápido y profundo seleccionables en Ajustes.
+- Linterna real, abrir cámara, ajustes Wi-Fi, temporizador y batería.
+- Comandos como `enciende la linterna`, `apaga la linterna`, `abre la cámara`,
+  `temporizador de 5 minutos` y `cuánta batería tengo` funcionan sin clave de IA.
+- Los temporizadores se confirman en la app de reloj. `abre mensajes` abre la app
+  SMS; el usuario elige destinatario y confirma el envío.
 
-Abre `backend/config.py` y asegúrate de que la clave esté configurada:
+La IA no controla silenciosamente el teléfono ni simula acciones ejecutadas.
+Android puede limitar las funciones disponibles según permisos y apps instaladas.
 
-```python
-API_KEY = "TU_GROQ_API_KEY_AQUI"
-MODELO = "llama-3.1-8b-instant"
-```
+## Configurar IA
 
-> ⚠️ **Mantén tu API Key secreta - no la compartas** ni la subas a repos públicos.
+Abre **Ajustes**, obtén una clave en <https://console.groq.com/keys> y guárdala.
+La clave solo se usa para consultar Groq. Los últimos mensajes necesarios para
+responder se envían al proveedor; el historial permanece en el almacenamiento
+privado de esta app. La voz utiliza el servicio de reconocimiento de Android.
 
-### 3. Probar en escritorio
+## Compilar y verificar
 
-```bash
-cd AsistentePro
-./run.sh
+Requisitos: JDK 17, Android SDK 35.
+
+```sh
+./gradlew :app:assembleDebug
+./gradlew :app:recordPaparazziDebug :app:lintDebug
 ```
 
-Esto inicia el backend Flask en `http://0.0.0.0:5000` y luego abre la app Kivy.
+Actions publica el APK y **asistente-pro-vistas-y-pruebas** con capturas de inicio,
+chat, ajustes y pantalla pequeña con texto ampliado. Las pruebas también verifican
+los comandos nativos, contexto enviado a Groq y errores de autenticación y respuesta.
+Las capturas verifican renderizado; los permisos, la cámara y la voz deben comprobarse
+en un dispositivo real, pues dependen del hardware y de los servicios de Android.
 
-Puedes probar el backend sin interfaz:
+## Estructura
 
-```bash
-curl -X POST http://localhost:5000/comando -H "Content-Type: application/json" \
-     -d '{"texto": "Hola, ¿quién eres?"}'
-```
-
-## 📲 Compilar APK (Android)
-
-### Descargar desde GitHub Actions
-
-1. Abre la pestaña **Actions** y selecciona **Build Asistente Pro APK**.
-2. Abre la ejecución más reciente con estado verde.
-3. En **Artifacts**, descarga **asistente-pro-apk** (inicia sesión en GitHub).
-4. Descomprime el ZIP e instala el `.apk` en tu teléfono Android ARM64.
-
-Cada push a `main` compila automáticamente. También puedes usar **Run workflow**.
-Los artefactos se conservan durante 30 días.
-
-Al abrir el APK, el backend se inicia en el teléfono y se solicita tu API key de
-Groq. Se guarda en el almacenamiento privado de la aplicación; no se incluye
-ninguna clave en el repositorio ni en el APK. La compilación usa Python 3.11.5,
-Kivy 2.3.0, NDK 25b y una revisión fija de python-for-android.
-
-Las acciones de linterna, foto, SMS y ubicación del backend actual son respuestas
-simuladas. El módulo de reconocimiento de voz todavía no está incluido.
-
-### 1. Instalar Buildozer
-
-```bash
-pip3 install --user buildozer
-```
-
-### 2. Compilar
-
-```bash
-cd AsistentePro
-./build_apk.sh
-```
-
-El APK se generará en:
-
-```
-bin/AsistentePro-1.0.0-arm64-v8a_armeabi-v7a-debug.apk
-```
-
-Transfiérelo a tu teléfono y haz doble clic para instalar.
-En el teléfono, el backend corre localmente vía `localhost:5000`.
-
-## 💬 Comandos de ejemplo
-
-| Preguntas / comandos | Acción |
-|----------------------|--------|
-| "¿Quién eres?" | Explica su identidad (IA) |
-| "Dame el estado de la batería" | Acción batería |
-| "manda vibrar" | Hace vibrar el teléfono |
-| "enciende la linterna" | Enciende la linterna |
-| "captura una foto" | Toma una foto |
-| "¿dónde estoy?" | Ubicación aproximada |
-| "Llámana en 5 minutos" | Planea con IA |
-
-## 🖼 Screenshots
-
-*(Pendientes: añade aquí capturas de la app en ejecución)*
-
-```
-┌──────────────────────────┐
-│  🤖 Asistente Pro       │
-│  ┌────────────────────┐ │
-│  │ 🧑 ¡Hola! abre la  │ │
-│  │    linterna porfa  │ │
-│  │ 🤖 ¡Listo! 🔦      │ │
-│  │    Linterna enc.   │ │
-│  └────────────────────┘ │
-│  [ Escribe aquí   ] 🎤➤ │
-└──────────────────────────┘
-```
-
-## 🧰 Scripts útiles
-
-- `./run.sh` — Arranca backend + aplicación.
-- `./build_apk.sh` — Compila el APK con Buildozer.
-- `python3 icons/generar_icono.py` — Regenera el icono de la app.
-
-## 📝 Notas
-
-- El reconocimiento de voz del frontend usa el módulo nativo `android_speech` cuando se compila para Android; en escritorio se desactiva automáticamente.
-- El backend escucha en `0.0.0.0:5000`, ideal para probar desde otros dispositivos de tu red local.
-
----
-**Asistente Pro v1.0.0** — Hecho con ❤️ y Groq.
+`app/` contiene toda la aplicación nativa. Los archivos Python y Buildozer de la raíz
+se conservan como referencia de la versión anterior y ya no se compilan en Actions.

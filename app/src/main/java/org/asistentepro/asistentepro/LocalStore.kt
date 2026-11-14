@@ -1,0 +1,64 @@
+package org.asistentepro.asistentepro
+
+import android.content.Context
+import android.security.keystore.KeyGenParameterSpec
+import android.security.keystore.KeyProperties
+import android.util.Base64
+import org.json.JSONArray
+import org.json.JSONObject
+import java.security.KeyStore
+import javax.crypto.Cipher
+import javax.crypto.KeyGenerator
+import javax.crypto.SecretKey
+import javax.crypto.spec.GCMParameterSpec
+
+class LocalStore(context: Context) {
+    private val preferences = context.getSharedPreferences("asistente_native", Context.MODE_PRIVATE)
+    private fun secret(): SecretKey {
+        val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
+        (store.getKey("AsistenteProGroq", null) as? SecretKey)?.let { return it }
+        return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
+            init(KeyGenParameterSpec.Builder("AsistenteProGroq", KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
+                .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())
+        }.generateKey()
+    }
+    fun apiKey(): String = runCatching {
+        val encoded = preferences.getString("groq_key", null) ?: return@runCatching ""
+        val parts = encoded.split(":")
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding")
+        cipher.init(Cipher.DECRYPT_MODE, secret(), GCMParameterSpec(128, Base64.decode(parts[0], Base64.NO_WRAP)))
+        String(cipher.doFinal(Base64.decode(parts[1], Base64.NO_WRAP)), Charsets.UTF_8)
+    }.getOrDefault("")
+    fun saveKey(value: String) {
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, secret()) }
+        val data = Base64.encodeToString(cipher.iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(cipher.doFinal(value.toByteArray()), Base64.NO_WRAP)
+        check(preferences.edit().putString("groq_key", data).commit()) { "No se pudo guardar la clave" }
+    }
+    fun deleteKey() { preferences.edit().remove("groq_key").apply() }
+    var readAloud: Boolean
+        get() = preferences.getBoolean("read_aloud", false)
+        set(value) { preferences.edit().putBoolean("read_aloud", value).apply() }
+    var model: String
+        get() = preferences.getString("model", "llama-3.1-8b-instant")!!
+        set(value) { preferences.edit().putString("model", value).apply() }
+    fun conversations(): List<Conversation> = runCatching {
+        val array = JSONArray(preferences.getString("conversations", "[]"))
+        (0 until array.length()).map { index ->
+            val item = array.getJSONObject(index)
+            val messages = item.getJSONArray("messages")
+            Conversation(item.getString("id"), item.getString("title"), (0 until messages.length()).map {
+                val msg = messages.getJSONObject(it)
+                Message(msg.getString("id"), msg.getString("text"), msg.getBoolean("user"), msg.getLong("time"))
+            }, item.getLong("updated"))
+        }
+    }.getOrDefault(emptyList())
+    fun saveConversations(items: List<Conversation>) {
+        val array = JSONArray()
+        items.take(40).forEach { conversation ->
+            val messages = JSONArray()
+            conversation.messages.takeLast(100).forEach { messages.put(JSONObject().put("id", it.id).put("text", it.text).put("user", it.user).put("time", it.time)) }
+            array.put(JSONObject().put("id", conversation.id).put("title", conversation.title).put("updated", conversation.updatedAt).put("messages", messages))
+        }
+        preferences.edit().putString("conversations", array.toString()).apply()
+    }
+}

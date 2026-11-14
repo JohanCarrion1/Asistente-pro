@@ -1,0 +1,12 @@
+<resources>
+    <color name="ink">#0D1514</color>
+    <style name="Theme.AsistentePro" parent="android:style/Theme.Material.NoActionBar">
+        <item name="android:fontFamily">sans</item>
+        <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">@color/ink</item>
+        <item name="android:navigationBarColor">@color/ink</item>
+        <item name="android:windowBackground">@color/ink</item>
+        <item name="android:colorAccent">#C1F4D8</item>
+        <item name="android:windowActionModeOverlay">true</item>
+    </style>
+</resources>
