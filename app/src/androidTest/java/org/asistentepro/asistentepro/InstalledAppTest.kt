@@ -162,7 +162,8 @@ class InstalledAppTest {
             compose.activity.startActivity(Intent(compose.activity, MainActivity::class.java))
             assertTrue(device.wait(Until.hasObject(By.desc("Abrir ajustes")), 10000))
             compose.runOnIdle { engine.systemPermissions(true, true); engine.page(Page.Settings) }
-            compose.onNodeWithTag("permission-accessibility").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithTag("preferences").performScrollToNode(hasTestTag("permission-accessibility"))
+            compose.onNodeWithTag("permission-accessibility").assertIsDisplayed()
             capture("10-control-del-sistema")
         } finally {
             device.executeShellCommand("settings put system screen_brightness $originalBrightness")
