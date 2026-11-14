@@ -8,6 +8,25 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AiClientTest {
+    @Test fun everyProviderReceivesCurrentDeviceTimeAndSystemTools() {
+        AiProvider.entries.forEach { provider ->
+            MockWebServer().use { server ->
+                val client = AiClient(OkHttpClient(), server.url("/probe").toString())
+                server.enqueue(MockResponse().setBody("{}"))
+                client.call(provider, "not-real", provider.defaultModel, history).execute().close()
+                val body = JSONObject(server.takeRequest().body.readUtf8())
+                val instruction = when (provider) {
+                    AiProvider.Gemini -> body.getJSONObject("systemInstruction").getJSONArray("parts").getJSONObject(0).getString("text")
+                    AiProvider.Anthropic -> body.getString("system")
+                    else -> body.getJSONArray("messages").getJSONObject(0).getString("content")
+                }
+                assertTrue(instruction.contains("Datos actuales del dispositivo"))
+                assertTrue(instruction.contains(java.time.ZoneId.systemDefault().id))
+                assertTrue(body.getJSONArray("tools").toString().contains("brightness"))
+                assertTrue(body.getJSONArray("tools").toString().contains("current_time"))
+            }
+        }
+    }
     private val history = listOf(Message("1", "Hola", true), Message("2", "¿En qué te ayudo?", false), Message("3", "Un plan", true))
     @Test fun compatibleProvidersUseBearerAndConversation() {
         listOf(AiProvider.Groq, AiProvider.OpenRouter, AiProvider.OpenAI).forEach { provider ->

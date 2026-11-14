@@ -82,19 +82,97 @@ class InstalledAppTest {
     }
     @Test fun providersKeepSeparateEncryptedCredentials() {
         compose.onNodeWithContentDescription("Abrir ajustes").performClick()
-        compose.onNodeWithText("Gemini", useUnmergedTree = true).performClick()
+        compose.onNodeWithText("Gemini", useUnmergedTree = true).performScrollTo().performClick()
         compose.onNodeWithTag("api-key").performScrollTo().performTextInput("gemini_verification_key_not_real_1234")
         compose.onNodeWithText("Guardar clave").performScrollTo().performClick()
         compose.runOnIdle { assertTrue(engine.state.value.hasKey); assertEquals(AiProvider.Gemini, engine.state.value.provider) }
+        compose.onNodeWithTag("saved-api-key").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("•••• •••• 1234").assertIsDisplayed()
+        compose.onNodeWithTag("check-connection").assertIsEnabled()
+        compose.onNodeWithTag("api-key").assertDoesNotExist()
         compose.onNodeWithText("Anthropic", useUnmergedTree = true).performScrollTo().performClick()
         compose.runOnIdle { assertFalse(engine.state.value.hasKey); assertEquals(AiProvider.Anthropic.defaultModel, engine.state.value.model) }
-        compose.onNodeWithText("Gemini", useUnmergedTree = true).performClick()
+        compose.onNodeWithText("Gemini", useUnmergedTree = true).performScrollTo().performClick()
         compose.runOnIdle {
             assertTrue(engine.state.value.hasKey)
             val stored = compose.activity.getSharedPreferences("asistente_native", 0).getString("key_Gemini", "")!!
             assertFalse(stored.contains("gemini_verification")); assertTrue(stored.contains(":"))
         }
         capture("06-proveedores-aislados")
+    }
+    @Test fun clockUsesPhoneTimeEvenWithAnAiKeyConfigured() {
+        compose.runOnIdle {
+            engine.provider(AiProvider.Gemini); engine.keyDraft("time_test_not_a_real_key_1234"); engine.saveKey()
+        }
+        val before = android.text.format.DateFormat.getTimeFormat(compose.activity).format(java.util.Date())
+        compose.onNodeWithContentDescription("Escribe tu mensaje").performTextInput("que hora es")
+        compose.onNodeWithContentDescription("Enviar mensaje").performClick()
+        compose.waitUntil(5000) { engine.state.value.messages.any { !it.user && it.text.startsWith("Son las ") } }
+        val after = android.text.format.DateFormat.getTimeFormat(compose.activity).format(java.util.Date())
+        val answer = engine.state.value.messages.last().text
+        assertTrue(answer.contains(before) || answer.contains(after))
+        assertTrue(answer.contains(java.util.TimeZone.getDefault().id))
+        assertTrue(engine.state.value.hasKey)
+        capture("09-hora-real-del-telefono")
+    }
+    @Test fun unreadableCredentialIsReportedAndCanBeReplaced() {
+        val preferences = compose.activity.getSharedPreferences("asistente_native", 0)
+        preferences.edit().putString("key_Gemini", "corrupted-credential").commit()
+        compose.runOnIdle { engine.provider(AiProvider.Gemini); engine.page(Page.Settings) }
+        compose.onNodeWithTag("saved-key-error").performScrollTo().assertIsDisplayed()
+        assertFalse(engine.state.value.hasKey)
+        compose.onNodeWithTag("api-key").performScrollTo().performTextInput("replacement_not_a_real_key_5678")
+        compose.onNodeWithText("Guardar clave").performScrollTo().performClick()
+        compose.onNodeWithTag("saved-api-key").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("•••• •••• 5678").assertIsDisplayed()
+        assertFalse(engine.state.value.keyUnreadable)
+        assertEquals("replacement_not_a_real_key_5678", LocalStore(compose.activity).apiKey(AiProvider.Gemini))
+        capture("11-clave-recuperada")
+    }
+    @Test fun systemControlsRequirePermissionAndChangeRealAndroidState() {
+        val configuration = androidx.test.uiautomator.Configurator.getInstance()
+        val oldFlags = configuration.uiAutomationFlags
+        configuration.uiAutomationFlags = android.app.UiAutomation.FLAG_DONT_SUPPRESS_ACCESSIBILITY_SERVICES
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        val resolver = compose.activity.contentResolver
+        val originalBrightness = android.provider.Settings.System.getInt(resolver, android.provider.Settings.System.SCREEN_BRIGHTNESS, 128)
+        val originalMode = android.provider.Settings.System.getInt(resolver, android.provider.Settings.System.SCREEN_BRIGHTNESS_MODE, 0)
+        val originalRotation = android.provider.Settings.System.getInt(resolver, android.provider.Settings.System.ACCELEROMETER_ROTATION, 0)
+        val originalServices = device.executeShellCommand("settings get secure enabled_accessibility_services").trim()
+        val component = "app.asistentepro.android/org.asistentepro.asistentepro.XylonControlService"
+        val services = listOf(originalServices.takeUnless { it == "null" || it.isBlank() }, component).filterNotNull().joinToString(":")
+        try {
+            device.executeShellCommand("appops set app.asistentepro.android WRITE_SETTINGS deny")
+            InstrumentationRegistry.getInstrumentation().runOnMainSync { engine.action(DeviceAction.Brightness(42)) }
+            assertTrue(engine.state.value.error!!.contains("Modificar ajustes"))
+            assertEquals(originalBrightness, android.provider.Settings.System.getInt(resolver, android.provider.Settings.System.SCREEN_BRIGHTNESS))
+            device.executeShellCommand("appops set app.asistentepro.android WRITE_SETTINGS allow")
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                engine.dismissError(); engine.action(DeviceAction.Brightness(42)); engine.action(DeviceAction.AutoRotate(false))
+            }
+            assertEquals(107, android.provider.Settings.System.getInt(resolver, android.provider.Settings.System.SCREEN_BRIGHTNESS))
+            assertEquals(0, android.provider.Settings.System.getInt(resolver, android.provider.Settings.System.ACCELEROMETER_ROTATION))
+            device.executeShellCommand("settings put secure enabled_accessibility_services $services")
+            device.executeShellCommand("settings put secure accessibility_enabled 1")
+            compose.waitUntil(20000) { XylonControlService.active != null }
+            InstrumentationRegistry.getInstrumentation().runOnMainSync {
+                engine.action(DeviceAction.Navigate(SystemNavigation.Home))
+            }
+            assertTrue("Native HOME did not leave Xylon", device.wait(Until.gone(By.pkg("app.asistentepro.android").depth(0)), 10000))
+            compose.activity.startActivity(Intent(compose.activity, MainActivity::class.java))
+            assertTrue(device.wait(Until.hasObject(By.desc("Abrir ajustes")), 10000))
+            compose.runOnIdle { engine.systemPermissions(true, true); engine.page(Page.Settings) }
+            compose.onNodeWithTag("permission-accessibility").performScrollTo().assertIsDisplayed()
+            capture("10-control-del-sistema")
+        } finally {
+            device.executeShellCommand("settings put system screen_brightness $originalBrightness")
+            device.executeShellCommand("settings put system screen_brightness_mode $originalMode")
+            device.executeShellCommand("settings put system accelerometer_rotation $originalRotation")
+            if (originalServices == "null" || originalServices.isBlank()) device.executeShellCommand("settings delete secure enabled_accessibility_services")
+            else device.executeShellCommand("settings put secure enabled_accessibility_services $originalServices")
+            device.executeShellCommand("appops set app.asistentepro.android WRITE_SETTINGS default")
+            configuration.uiAutomationFlags = oldFlags
+        }
     }
     private fun recognizedFixture(): String {
         val ready = CountDownLatch(1)

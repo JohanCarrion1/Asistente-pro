@@ -1,0 +1,4 @@
+<resources>
+    <string name="system_control_label">Xylon · control por voz</string>
+    <string name="system_control_description">Permite a Xylon ejecutar Inicio, Atrás, aplicaciones recientes, notificaciones, ajustes rápidos o bloqueo cuando se lo pidas. No lee el contenido de las pantallas, no guarda eventos y no realiza acciones por su cuenta. Puedes desactivarlo en cualquier momento.</string>
+</resources>

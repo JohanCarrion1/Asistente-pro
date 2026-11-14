@@ -20,6 +20,7 @@ fi
 if [[ -f "$RUNNER_TEMP/asistente-v3/AsistentePro-Nativo-3.0.1.apk" ]]; then
   adb install --no-streaming -r "$RUNNER_TEMP/asistente-v3/AsistentePro-Nativo-3.0.1.apk" | tee "$report/install-version-3.txt"
 fi
+adb install --no-streaming -r "$RUNNER_TEMP/xylon-v4/Xylon-4.0.0.apk" | tee "$report/install-version-4.txt"
 adb shell df -h /data | tee "$report/device-storage.txt"
 adb install --no-streaming -r verification-app/build/outputs/apk/debug/verification-app-debug.apk | tee "$report/install-test-fixture.txt"
 # Google images may already contain the real YouTube. Keep this test deterministic
@@ -35,4 +36,10 @@ adb shell pm list packages | grep -F 'asistentepro' | tee "$report/packages-coex
 adb install --no-streaming -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk | tee "$report/install-test-runner.txt"
 sha256sum app/build/outputs/apk/debug/app-debug.apk > "$report/tested-apk.sha256"
 adb shell am instrument -w -r -e class org.asistentepro.asistentepro.InstalledAppTest app.asistentepro.android.test/androidx.test.runner.AndroidJUnitRunner | tee "$report/instrumentation.txt"
-grep -Eq '^OK \(8 tests\)' "$report/instrumentation.txt"
+grep -Eq '^OK \(11 tests\)' "$report/instrumentation.txt"
+# Prove encrypted keys survive real target-process death, not only a UI refresh.
+adb shell am instrument -w -r -e class 'org.asistentepro.asistentepro.CredentialRestartTest#seed' app.asistentepro.android.test/androidx.test.runner.AndroidJUnitRunner | tee "$report/credentials-before-process-death.txt"
+grep -Eq '^OK \(1 test\)' "$report/credentials-before-process-death.txt"
+adb shell am force-stop app.asistentepro.android
+adb shell am instrument -w -r -e class 'org.asistentepro.asistentepro.CredentialRestartTest#verifyAfterProcessDeath' app.asistentepro.android.test/androidx.test.runner.AndroidJUnitRunner | tee "$report/credentials-after-process-death.txt"
+grep -Eq '^OK \(1 test\)' "$report/credentials-after-process-death.txt"

@@ -48,9 +48,11 @@ data class AssistantCallbacks(
     val onStop: () -> Unit = {}, val onNew: () -> Unit = {},
     val onAction: (DeviceAction) -> Unit = {}, val onKeyDraft: (String) -> Unit = {},
     val onSaveKey: () -> Unit = {}, val onRemoveKey: () -> Unit = {},
+    val onCheckConnection: () -> Unit = {},
     val onReading: (Boolean) -> Unit = {}, val onModel: (String) -> Unit = {},
     val onProvider: (AiProvider) -> Unit = {}, val onHandsFree: (Boolean) -> Unit = {},
     val onOverlayPermission: () -> Unit = {}, val onDefaultAssistant: () -> Unit = {}, val onShowOverlay: () -> Unit = {},
+    val onControlPermission: () -> Unit = {}, val onWriteSettingsPermission: () -> Unit = {},
     val onOpen: (Conversation) -> Unit = {}, val onDelete: (Conversation) -> Unit = {},
     val onClearHistory: () -> Unit = {}, val onDismiss: () -> Unit = {}, val onSpeak: (String) -> Unit = {},
 )

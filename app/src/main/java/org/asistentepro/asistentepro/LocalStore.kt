@@ -14,9 +14,10 @@ import javax.crypto.spec.GCMParameterSpec
 
 class LocalStore(context: Context) {
     private val preferences = context.getSharedPreferences("asistente_native", Context.MODE_PRIVATE)
-    private fun secret(): SecretKey {
+    private fun secret(create: Boolean = false): SecretKey {
         val store = KeyStore.getInstance("AndroidKeyStore").apply { load(null) }
         (store.getKey("AsistenteProGroq", null) as? SecretKey)?.let { return it }
+        check(create) { "La clave de cifrado de Android no está disponible" }
         return KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore").apply {
             init(KeyGenParameterSpec.Builder("AsistenteProGroq", KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT)
                 .setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build())
@@ -34,10 +35,14 @@ class LocalStore(context: Context) {
         String(cipher.doFinal(Base64.decode(parts[1], Base64.NO_WRAP)), Charsets.UTF_8)
     }.getOrDefault("")
     fun saveKey(value: String, provider: AiProvider = this.provider) {
-        val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, secret()) }
+        val cipher = Cipher.getInstance("AES/GCM/NoPadding").apply { init(Cipher.ENCRYPT_MODE, secret(create = true)) }
         val data = Base64.encodeToString(cipher.iv, Base64.NO_WRAP) + ":" + Base64.encodeToString(cipher.doFinal(value.toByteArray()), Base64.NO_WRAP)
         check(preferences.edit().putString("key_${provider.name}", data).commit()) { "No se pudo guardar la clave" }
+        check(apiKey(provider) == value) { "Android no pudo recuperar la clave guardada" }
     }
+    fun hasStoredKey(provider: AiProvider = this.provider) = preferences.contains("key_${provider.name}") || (provider == AiProvider.Groq && preferences.contains("groq_key"))
+    fun keyMask(provider: AiProvider = this.provider) = apiKey(provider).takeIf { it.isNotBlank() }?.let { "•••• •••• ${it.takeLast(4)}" }.orEmpty()
+    fun keyUnreadable(provider: AiProvider = this.provider) = hasStoredKey(provider) && apiKey(provider).isBlank()
     fun deleteKey() { preferences.edit().remove("key_${provider.name}").apply(); if (provider == AiProvider.Groq) preferences.edit().remove("groq_key").apply() }
     fun configuredProviders() = AiProvider.entries.filter { apiKey(it).isNotBlank() }.toSet()
     var draft: String

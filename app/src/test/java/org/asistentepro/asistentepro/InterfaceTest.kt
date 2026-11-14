@@ -18,6 +18,10 @@ class InterfaceTest {
         )), animate = false) }
     }
     @Test fun settings() { paparazzi.snapshot { AsistenteApp(AssistantState(page = Page.Settings), animate = false) } }
+    @Test fun savedCredentialIsVisibleAsAMaskedCard() {
+        paparazzi.snapshot { AsistenteApp(AssistantState(page = Page.Settings, provider = AiProvider.Gemini,
+            model = AiProvider.Gemini.defaultModel, hasKey = true, keyMask = "•••• •••• 1234", configuredProviders = setOf(AiProvider.Gemini)), animate = false) }
+    }
     @Test fun launcherIcon() {
         paparazzi.unsafeUpdateConfig(deviceConfig = DeviceConfig(screenWidth = 432, screenHeight = 432, xdpi = 160, ydpi = 160, density = com.android.resources.Density.MEDIUM))
         val icon = android.widget.ImageView(paparazzi.context).apply {

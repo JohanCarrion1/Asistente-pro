@@ -3,13 +3,13 @@
 Asistente Android nativo en **Kotlin y Jetpack Compose**, antes llamado Asistente Pro.
 Interfaz negra, icono propio azul/violeta, chat, menú lateral e historial local.
 
-## Instalar Xylon 4.0.0
+## Instalar Xylon 4.1.0
 
 En **Actions → Xylon - Android 13 a 17 verificado**, abre la ejecución verde más reciente.
-Descarga **asistente-pro-apk**, extrae el ZIP e instala **Xylon-4.0.0.apk**.
+Descarga **asistente-pro-apk**, extrae el ZIP e instala **Xylon-4.1.0.apk**.
 El ZIP también incluye el SHA-256 del APK. Android 8.0 o posterior; ARM y x86.
 
-**Actualiza Asistente Pro 3.0.1 directamente**, conservando sus datos y su clave de Groq:
+**Actualiza Xylon 4.0 o Asistente Pro 3.0.1 directamente, sin desinstalar**, conservando sus datos y claves:
 se mantiene `app.asistentepro.android` y el mismo certificado de firma. El nuevo nombre
 que verás bajo el icono es **Xylon**. Las versiones antiguas con identificador
 `org.asistentepro.asistentepro` siguen siendo independientes.
@@ -25,6 +25,15 @@ Se usan los protocolos nativos de Gemini (`generateContent`) y Anthropic (`messa
 y Chat Completions para Groq, OpenRouter y OpenAI. La app no incluye claves, créditos
 ni suscripciones. Una clave guardada se valida con el proveedor al enviar una consulta.
 La migración de la clave cifrada de Groq de la versión anterior es automática.
+
+Después de guardar verás **Clave guardada** con sus últimos cuatro caracteres. El campo
+de reemplazo se cierra para proteger la clave; eso no la elimina. **Cambiar clave** abre
+un formulario nuevo. Se comprueba tanto la escritura en disco como la lectura y descifrado
+antes de confirmar el guardado. Si Android no puede descifrar una clave existente,
+la app explica el problema y permite reemplazarla.
+
+**Comprobar conexión** envía una consulta breve al proveedor con la clave y el modelo
+elegidos. Un error de Internet, saldo, modelo o autenticación no borra la clave.
 El valor inicial de Groq es `openai/gpt-oss-120b`; los antiguos valores Llama de
 la versión 3 se actualizan porque Groq los retiró de sus cuentas normales.
 Se conserva cualquier modelo personalizado. Gemini usa `gemini-3.6-flash`.
@@ -40,10 +49,38 @@ una acción del teléfono mediante su API nativa de funciones. Xylon valida esa 
 y solo confirma una acción cuando Android la ejecuta o abre su pantalla de confirmación.
 
 La conversación está abierta a cualquier tema. Las acciones disponibles abarcan abrir
-cualquier app instalada, batería, linterna, cámara, ajustes de Wi-Fi, volumen, alarmas,
-temporizadores y abrir Mensajes. Las operaciones que Android no permita no se simulan.
+cualquier app instalada, reloj y fecha reales del teléfono, batería, linterna, cámara,
+ajustes de Wi-Fi, volumen, alarmas, temporizadores y abrir Mensajes. También hay
+controles de navegación, brillo, rotación y reproducción descritos a continuación.
 Sin una conexión de IA quedan disponibles atajos locales básicos; la interpretación
 abierta de peticiones requiere la clave, un modelo compatible y conexión a Internet.
+
+Las preguntas directas por la hora o fecha se resuelven con el reloj de Android,
+incluso con una clave de IA configurada, sin conexión ni permisos adicionales. Cada
+consulta de IA incluye además la fecha, hora y zona horaria actuales del dispositivo.
+
+## Control del sistema
+
+En **Ajustes → Control del sistema** puedes habilitar dos accesos independientes:
+
+- **Configurar Accesibilidad**: en Android, activa **Xylon · control por voz**. Permite
+  Inicio, Atrás, recientes, notificaciones, ajustes rápidos y bloqueo al pedirlos.
+  El servicio no lee ventanas, no recopila eventos ni realiza acciones autónomas.
+- **Permitir modificar ajustes**: activa la autorización para cambiar el brillo y la
+  rotación automática. Xylon comprueba `Settings.System.canWrite()` antes de escribir.
+
+Android puede bloquear inicialmente Accesibilidad para un APK instalado desde un gestor
+de archivos. Si aparece **Ajuste restringido**, entra en **Información de la app → ⋮ →
+Permitir ajustes restringidos** y vuelve a Accesibilidad. Estos accesos los concede y
+revoca el usuario desde Android; la app no se los concede a sí misma.
+
+También puedes establecer un porcentaje de volumen multimedia y enviar pausa/reproducción,
+siguiente o anterior al reproductor activo. Wi-Fi, Bluetooth, ubicación, sonido y pantalla
+se abren en los paneles del sistema para los cambios que requieran tu interacción.
+El servicio no proporciona root ni permisos reservados al fabricante.
+
+Referencias: [acciones de Accesibilidad](https://developer.android.com/reference/android/accessibilityservice/AccessibilityService#performGlobalAction(int))
+y [modificación de ajustes](https://developer.android.com/reference/android/provider/Settings.System#canWrite(android.content.Context)).
 
 Para usarla **fuera de la app**:
 
@@ -76,6 +113,7 @@ se abren en las apps del sistema con las confirmaciones que Android requiera.
 Las claves se cifran mediante AES/GCM y Android Keystore, separadas por proveedor.
 El historial y los borradores permanecen en el dispositivo. Al hacer una consulta de IA,
 solo el proveedor seleccionado recibe el contexto necesario (hasta 24 mensajes recientes).
+Ese contexto incluye el reloj y la zona horaria del dispositivo, sin consultar ubicación GPS.
 Manos libres procesa audio localmente; la superposición **no captura ni lee otras pantallas**.
 No hay un servicio web o runtime Python/Kivy/Buildozer en el repositorio ni en el APK.
 
@@ -83,12 +121,21 @@ No hay un servicio web o runtime Python/Kivy/Buildozer en el repositorio ni en e
 
 <img src="docs/previews/inicio.png" width="225" alt="Inicio de Xylon" /> <img src="docs/previews/menu.png" width="225" alt="Menú lateral" /> <img src="docs/previews/ajustes.png" width="225" alt="Proveedores de IA" />
 
+<img src="docs/previews/clave-guardada.png" width="225" alt="Tarjeta de clave guardada y comprobación de conexión" />
+
 Actions publica el APK únicamente después de superar compilación, pruebas de contratos
 HTTP de los cinco proveedores, comandos, renderizados, lint y pruebas instrumentadas en
 **Android 13, 14, 15, 16 y 17**. Los cinco entornos instalan el mismo APK y ejecutan
-las ocho pruebas instrumentadas mediante AndroidJUnitRunner. Incluye instalación, actualización desde 3.0.1 cuando el
+once pruebas instrumentadas mediante AndroidJUnitRunner y otras dos fases de persistencia
+en procesos diferentes. Incluye instalación, actualización desde 4.0 y desde 3.0.1 cuando el
 artefacto anterior sigue disponible, arranque, teclado, historial, claves separadas,
 migración Groq, sesión del asistente del sistema y superposición desde fuera de la app.
+Las cinco claves y un historial de prueba se guardan, se fuerza el cierre real del proceso
+y se verifican de nuevo, incluyendo un PID distinto. También se comprueba la recuperación
+de una clave ilegible, la hora local con una clave configurada y los cambios reales de
+brillo/rotación y navegación Inicio mediante el servicio de Accesibilidad.
+Solo los emuladores desechables reciben permisos mediante comandos de CI; el APK
+distribuido requiere la activación manual en los ajustes de Android.
 
 Las pruebas HTTP comprueban respuestas de texto y funciones nativas de los cinco
 proveedores, además de rechazar funciones desconocidas y argumentos inválidos.

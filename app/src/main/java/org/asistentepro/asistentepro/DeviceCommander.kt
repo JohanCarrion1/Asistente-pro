@@ -15,11 +15,50 @@ import android.provider.MediaStore
 import android.provider.Settings
 import androidx.core.content.ContextCompat
 import java.text.Normalizer
+import android.view.KeyEvent
+import kotlin.math.roundToInt
 
 class DeviceCommander(private val context: Context, private val engine: AssistantEngine, private val launch: (Intent) -> Unit) {
     fun execute(action: DeviceAction) {
         runCatching {
             when (action) {
+                DeviceAction.CurrentTime -> engine.deviceResult("Son las ${android.text.format.DateFormat.getTimeFormat(context).format(java.util.Date())}. Zona horaria: ${java.util.TimeZone.getDefault().id}.")
+                DeviceAction.CurrentDate -> engine.deviceResult(DeviceClock.date())
+                is DeviceAction.Navigate -> {
+                    val service = XylonControlService.active
+                    if (service == null) { engine.error("Activa Control del sistema en Ajustes de Xylon → Accesibilidad para usar esta acción."); return }
+                    if (action.destination != SystemNavigation.Lock && context.getSystemService(android.app.KeyguardManager::class.java).isKeyguardLocked) { engine.error("Desbloquea el teléfono para usar esta acción."); return }
+                    if (service.navigate(action.destination)) engine.deviceResult("Acción del sistema: ${action.destination.title}.")
+                    else engine.error("Android no permitió esa acción en la pantalla actual.")
+                }
+                is DeviceAction.Brightness -> {
+                    if (!requireSettingsPermission()) return
+                    require(action.percent in 0..100)
+                    check(Settings.System.putInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS_MODE, Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL))
+                    check(Settings.System.putInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, (action.percent * 255 / 100f).roundToInt().coerceAtLeast(1)))
+                    engine.deviceResult("Brillo ajustado al ${action.percent} %.")
+                }
+                is DeviceAction.AutoRotate -> {
+                    if (!requireSettingsPermission()) return
+                    check(Settings.System.putInt(context.contentResolver, Settings.System.ACCELEROMETER_ROTATION, if (action.enabled) 1 else 0))
+                    engine.deviceResult(if (action.enabled) "Rotación automática activada." else "Rotación automática desactivada.")
+                }
+                is DeviceAction.VolumeLevel -> {
+                    require(action.percent in 0..100)
+                    val audio = context.getSystemService(AudioManager::class.java)
+                    audio.setStreamVolume(AudioManager.STREAM_MUSIC, (audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC) * action.percent / 100f).roundToInt(), AudioManager.FLAG_SHOW_UI)
+                    engine.deviceResult("Volumen multimedia: ${audio.getStreamVolume(AudioManager.STREAM_MUSIC)} de ${audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)}.")
+                }
+                is DeviceAction.Media -> {
+                    val code = when (action.command) { MediaCommand.PlayPause -> KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE; MediaCommand.Next -> KeyEvent.KEYCODE_MEDIA_NEXT; MediaCommand.Previous -> KeyEvent.KEYCODE_MEDIA_PREVIOUS }
+                    val audio = context.getSystemService(AudioManager::class.java)
+                    audio.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, code)); audio.dispatchMediaKeyEvent(KeyEvent(KeyEvent.ACTION_UP, code))
+                    engine.deviceResult("Envié el control multimedia al reproductor activo.")
+                }
+                is DeviceAction.OpenSettings -> {
+                    val panel = when (action.panel) { SettingsPanel.Bluetooth -> Settings.ACTION_BLUETOOTH_SETTINGS; SettingsPanel.Location -> Settings.ACTION_LOCATION_SOURCE_SETTINGS; SettingsPanel.Internet -> Settings.ACTION_WIRELESS_SETTINGS; SettingsPanel.Sound -> Settings.ACTION_SOUND_SETTINGS; SettingsPanel.Display -> Settings.ACTION_DISPLAY_SETTINGS }
+                    launch(Intent(panel)); engine.deviceResult("Abrí los ajustes del sistema. Confirma allí el cambio que Android requiera.")
+                }
                 is DeviceAction.Torch -> {
                     if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
                         engine.error("Concede el permiso de cámara desde la app para usar la linterna."); return
@@ -69,5 +108,10 @@ class DeviceCommander(private val context: Context, private val engine: Assistan
                 }
             }
         }.onFailure { engine.error("Android no pudo abrir esta función. Revisa los permisos, desbloquea el teléfono y comprueba que la app esté instalada.") }
+    }
+    private fun requireSettingsPermission(): Boolean {
+        if (Settings.System.canWrite(context)) return true
+        engine.error("Activa Modificar ajustes del sistema desde Ajustes de Xylon para cambiar el brillo o la rotación.")
+        return false
     }
 }

@@ -28,6 +28,7 @@ class AiClient(
     fun call(provider: AiProvider, key: String, model: String, history: List<Message>): Call {
         require(model.isNotBlank() && model.length <= 150 && model.matches(Regex("[a-zA-Z0-9._:/-]+"))) { "Modelo no válido" }
         val recent = history.takeLast(24)
+        val turnInstruction = instruction + "\n" + DeviceClock.context()
         val request = Request.Builder()
         val body: JSONObject
         var endpoint = provider.endpoint
@@ -38,14 +39,14 @@ class AiClient(
                 val contents = JSONArray()
                 recent.forEach { contents.put(JSONObject().put("role", if (it.user) "user" else "model")
                     .put("parts", JSONArray().put(JSONObject().put("text", it.text)))) }
-                body = JSONObject().put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", instruction))))
+                body = JSONObject().put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", turnInstruction))))
                     .put("contents", contents).put("generationConfig", JSONObject().put("maxOutputTokens", 2048))
                     .put("tools", JSONArray().put(JSONObject().put("functionDeclarations", JSONArray().put(JSONObject().put("name", PhoneTools.name)
                         .put("description", PhoneTools.description).put("parameters", PhoneTools.geminiSchema())))))
             }
             AiProvider.Anthropic -> {
                 request.header("x-api-key", key).header("anthropic-version", "2023-06-01")
-                body = JSONObject().put("model", model).put("system", instruction).put("max_tokens", 1800)
+                body = JSONObject().put("model", model).put("system", turnInstruction).put("max_tokens", 1800)
                     .put("messages", messages(recent))
                     .put("tools", JSONArray().put(JSONObject().put("name", PhoneTools.name).put("description", PhoneTools.description).put("input_schema", PhoneTools.schema())))
             }
@@ -53,7 +54,7 @@ class AiClient(
                 request.header("Authorization", "Bearer $key")
                 if (provider == AiProvider.OpenRouter) request.header("X-OpenRouter-Title", "Xylon")
                     .header("HTTP-Referer", "https://github.com/JohanCarrion1/Asistente-pro")
-                val messages = JSONArray().put(JSONObject().put("role", "system").put("content", instruction))
+                val messages = JSONArray().put(JSONObject().put("role", "system").put("content", turnInstruction))
                 recent.forEach { messages.put(JSONObject().put("role", if (it.user) "user" else "assistant").put("content", it.text)) }
                 body = JSONObject().put("model", model).put("messages", messages).put("max_tokens", 1800)
                     .put("tools", JSONArray().put(JSONObject().put("type", "function").put("function", JSONObject().put("name", PhoneTools.name)

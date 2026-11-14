@@ -17,8 +17,8 @@ android {
         applicationId = "app.asistentepro.android"
         minSdk = 26
         targetSdk = 35
-        versionCode = 400000000
-        versionName = "4.0.0"
+        versionCode = 401000000
+        versionName = "4.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }

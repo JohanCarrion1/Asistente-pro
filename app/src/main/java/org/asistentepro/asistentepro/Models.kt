@@ -18,6 +18,10 @@ data class AssistantState(
     val error: String? = null,
     val notice: String? = null,
     val keyDraft: String = "",
+    val keyMask: String = "",
+    val keyUnreadable: Boolean = false,
+    val checkingConnection: Boolean = false,
+    val connectionStatus: String = "",
     val model: String = AiProvider.Groq.defaultModel,
     val provider: AiProvider = AiProvider.Groq,
     val configuredProviders: Set<AiProvider> = emptySet(),
@@ -25,9 +29,23 @@ data class AssistantState(
     val handsFreeStatus: String = "Desactivado",
     val overlayGranted: Boolean = false,
     val assistantSelected: Boolean = false,
+    val controlEnabled: Boolean = false,
+    val writeSettingsGranted: Boolean = false,
 )
 
+enum class SystemNavigation(val title: String) { Back("Atrás"), Home("Inicio"), Recents("Aplicaciones recientes"), Notifications("Notificaciones"), QuickSettings("Ajustes rápidos"), Lock("Bloquear pantalla") }
+enum class MediaCommand { PlayPause, Next, Previous }
+enum class SettingsPanel { Bluetooth, Location, Internet, Sound, Display }
+
 sealed interface DeviceAction {
+    data object CurrentTime : DeviceAction
+    data object CurrentDate : DeviceAction
+    data class Navigate(val destination: SystemNavigation) : DeviceAction
+    data class Brightness(val percent: Int) : DeviceAction
+    data class AutoRotate(val enabled: Boolean) : DeviceAction
+    data class VolumeLevel(val percent: Int) : DeviceAction
+    data class Media(val command: MediaCommand) : DeviceAction
+    data class OpenSettings(val panel: SettingsPanel) : DeviceAction
     data class Torch(val enabled: Boolean?) : DeviceAction
     data object Camera : DeviceAction
     data object Wifi : DeviceAction
@@ -44,6 +62,8 @@ object ActionRouter {
     fun parse(text: String): DeviceAction? {
         val value = Normalizer.normalize(WakePhrase.stripOptionalName(text).lowercase(), Normalizer.Form.NFD)
             .replace("\\p{M}+".toRegex(), "").trim().trim('¿', '?', '¡', '!', '.', ',').trim()
+        if (value.matches(Regex("(?:que hora (?:es|tenemos)(?: ahora)?|(?:dime|dame) (?:la )?hora(?: actual)?|hora(?: actual)?)"))) return DeviceAction.CurrentTime
+        if (value.matches(Regex("(?:que (?:dia|fecha) es(?: hoy)?|(?:dime|dame) (?:la )?fecha(?: de hoy)?|fecha(?: de hoy)?)"))) return DeviceAction.CurrentDate
         if (value in listOf("ayuda", "que puedes hacer", "como uso asistente pro", "como te uso")) return DeviceAction.Help
         if (value in listOf("sube el volumen", "subir volumen", "sube volumen")) return DeviceAction.Volume(true)
         if (value in listOf("baja el volumen", "bajar volumen", "baja volumen")) return DeviceAction.Volume(false)

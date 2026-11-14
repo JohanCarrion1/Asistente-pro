@@ -19,19 +19,22 @@ class AssistantEngine(application: Application) {
     private val ai = AiClient()
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val mutable = MutableStateFlow(AssistantState(hasKey = store.apiKey().isNotBlank(), provider = store.provider,
+        keyMask = store.keyMask(), keyUnreadable = store.keyUnreadable(),
         configuredProviders = store.configuredProviders(), conversations = store.conversations(), readAloud = store.readAloud, model = store.model, draft = store.draft))
     val state = mutable.asStateFlow()
     private var conversationId = UUID.randomUUID().toString()
     private var request: Job? = null
     private var call: Call? = null
     private var spokenTurn = false
+    private var connectionGeneration = 0
     var onDeviceAction: ((DeviceAction) -> Unit)? = null
     var onSpeak: ((String) -> Unit)? = null
     fun handsFree(active: Boolean, status: String) { mutable.update { it.copy(handsFreeActive = active, handsFreeStatus = status) } }
     fun permissions(overlay: Boolean, assistant: Boolean) { mutable.update { it.copy(overlayGranted = overlay, assistantSelected = assistant) } }
+    fun systemPermissions(control: Boolean, settings: Boolean) { mutable.update { it.copy(controlEnabled = control, writeSettingsGranted = settings) } }
     fun provider(value: AiProvider) {
         stop(); store.provider = value
-        mutable.update { it.copy(provider = value, model = store.model, hasKey = store.apiKey().isNotBlank(), keyDraft = "", error = null, notice = null) }
+        mutable.update { it.copy(provider = value, model = store.model, hasKey = store.apiKey().isNotBlank(), keyMask = store.keyMask(), keyUnreadable = store.keyUnreadable(), keyDraft = "", connectionStatus = "", error = null, notice = null) }
     }
 
     fun draft(value: String) { store.draft = value; mutable.update { it.copy(draft = value) } }
@@ -42,16 +45,40 @@ class AssistantEngine(application: Application) {
     fun notice(value: String) { mutable.update { it.copy(notice = value) } }
     fun dismissError() { mutable.update { it.copy(error = null, notice = null) } }
     fun toggleReading(value: Boolean) { store.readAloud = value; mutable.update { it.copy(readAloud = value) } }
-    fun model(value: String) { store.model = value; mutable.update { it.copy(model = value) } }
+    fun model(value: String) { stop(); store.model = value; mutable.update { it.copy(model = value, connectionStatus = "") } }
     fun torch(value: Boolean) { mutable.update { it.copy(torchOn = value) } }
     fun saveKey() {
         val key = state.value.keyDraft.trim()
         if (key.length < 12 || key.any { it.isWhitespace() }) { error("Pega la clave completa de ${state.value.provider.title}, sin espacios."); return }
+        stop()
         runCatching { store.saveKey(key) }.onSuccess {
-            mutable.update { it.copy(hasKey = true, configuredProviders = store.configuredProviders(), keyDraft = "", notice = "Clave de ${it.provider.title} guardada de forma segura.", error = null) }
-        }.onFailure { error("No se pudo guardar la clave en este dispositivo.") }
+            mutable.update { it.copy(hasKey = true, keyMask = store.keyMask(), keyUnreadable = false, connectionStatus = "", configuredProviders = store.configuredProviders(), keyDraft = "", notice = "Clave de ${it.provider.title} guardada y recuperada correctamente.", error = null) }
+        }.onFailure { mutable.update { it.copy(hasKey = store.apiKey().isNotBlank(), keyMask = store.keyMask(), keyUnreadable = store.keyUnreadable(), error = "Android no pudo guardar o recuperar la clave. Inténtalo otra vez; tu clave anterior no se elimina al cambiar de pantalla.") } }
     }
-    fun removeKey() { store.deleteKey(); mutable.update { it.copy(hasKey = false, configuredProviders = store.configuredProviders(), keyDraft = "", notice = "Clave eliminada.") } }
+    fun removeKey() { stop(); store.deleteKey(); mutable.update { it.copy(hasKey = false, keyMask = "", keyUnreadable = false, connectionStatus = "", configuredProviders = store.configuredProviders(), keyDraft = "", notice = "Clave eliminada.") } }
+    fun checkConnection() {
+        if (!state.value.hasKey) { error("Guarda una clave para comprobar la conexión."); return }
+        stop()
+        val generation = connectionGeneration
+        val provider = state.value.provider
+        val key = store.apiKey()
+        val model = state.value.model
+        mutable.update { it.copy(checkingConnection = true, connectionStatus = "Comprobando acceso a ${provider.title}…", error = null) }
+        request = scope.launch {
+            try {
+                withContext(Dispatchers.IO) {
+                    val probe = ai.call(provider, key, model, listOf(Message("connection-check", "Responde solo OK. No realices ninguna acción del teléfono.", true)))
+                    call = probe
+                    ai.reply(provider, probe) // A connection check never executes tool calls.
+                }
+                if (generation == connectionGeneration) mutable.update { it.copy(connectionStatus = "Conexión con ${provider.title} comprobada. Tu clave y modelo tienen acceso.") }
+            } catch (cancelled: CancellationException) { throw cancelled }
+            catch (failure: Exception) {
+                val reason = (failure as? AssistantException)?.message ?: "No pude conectar. Revisa Internet y el identificador del modelo."
+                if (generation == connectionGeneration) mutable.update { it.copy(connectionStatus = "Tu clave sigue guardada. $reason") }
+            } finally { if (generation == connectionGeneration) mutable.update { it.copy(checkingConnection = false) } }
+        }
+    }
     fun clearHistory() { stop(); store.draft = ""; store.saveConversations(emptyList()); conversationId = UUID.randomUUID().toString(); mutable.update { it.copy(conversations = emptyList(), messages = emptyList(), draft = "", notice = "Historial eliminado.") } }
     fun newConversation() { stop(); store.draft = ""; conversationId = UUID.randomUUID().toString(); mutable.update { it.copy(page = Page.Assistant, messages = emptyList(), draft = "", error = null, notice = null) } }
     fun openConversation(item: Conversation) { stop(); conversationId = item.id; mutable.update { it.copy(page = Page.Assistant, messages = item.messages, error = null) } }
@@ -61,7 +88,7 @@ class AssistantEngine(application: Application) {
         mutable.update { it.copy(conversations = items) }
         if (conversationId == item.id) { newConversation(); page(Page.History) }
     }
-    fun stop() { call?.cancel(); request?.cancel(); mutable.update { it.copy(phase = VoicePhase.Idle) } }
+    fun stop() { connectionGeneration++; call?.cancel(); request?.cancel(); mutable.update { it.copy(phase = VoicePhase.Idle, checkingConnection = false) } }
     private fun append(text: String, user: Boolean) {
         mutable.update { it.copy(messages = it.messages + Message(UUID.randomUUID().toString(), text, user)) }
         persist()
@@ -87,7 +114,8 @@ class AssistantEngine(application: Application) {
         spokenTurn = spoken
         // Connected conversations use the provider's native function calling.
         // Local shortcuts are only an offline fallback, never required phrasing.
-        val action = if (!state.value.hasKey) ActionRouter.parse(text) else null
+        val local = ActionRouter.parse(text)
+        val action = if (!state.value.hasKey || local == DeviceAction.CurrentTime || local == DeviceAction.CurrentDate) local else null
         if (action != null) {
             store.draft = ""
             mutable.update { it.copy(page = Page.Assistant, draft = "", error = null, phase = VoicePhase.Idle) }

@@ -53,6 +53,7 @@ class MainActivity : ComponentActivity() {
                 onSend = { stopVoice(); model.send(it) }, onMic = ::microphone,
                 onStop = { stopVoice(); model.stop() }, onNew = { stopVoice(); model.newConversation() },
                 onAction = ::perform, onKeyDraft = model::keyDraft, onSaveKey = model::saveKey, onRemoveKey = model::removeKey,
+                onCheckConnection = model::checkConnection, onControlPermission = ::controlPermission, onWriteSettingsPermission = ::writeSettingsPermission,
                 onReading = model::toggleReading, onModel = model::model, onProvider = model::provider,
                 onHandsFree = ::handsFree, onOverlayPermission = ::overlayPermission, onDefaultAssistant = ::defaultAssistant,
                 onShowOverlay = { showOnStart = true; handsFree(true) },
@@ -68,6 +69,7 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         model.permissions(Settings.canDrawOverlays(this), VoiceInteractionService.isActiveService(this, ComponentName(this, XylonVoiceService::class.java)))
+        model.systemPermissions(XylonControlService.active != null, Settings.System.canWrite(this))
         if (pendingHandsFree && Settings.canDrawOverlays(this)) { pendingHandsFree = false; handsFree(true) }
     }
     private fun perform(action: DeviceAction) {
@@ -79,6 +81,14 @@ class MainActivity : ComponentActivity() {
     private fun overlayPermission() {
         runCatching { startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))) }
             .onFailure { model.error("Abre los ajustes de Android y permite a Xylon mostrarse sobre otras apps.") }
+    }
+    private fun controlPermission() {
+        runCatching { startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)) }
+            .onFailure { model.error("Abre Accesibilidad en los ajustes de Android y activa Xylon · control por voz.") }
+    }
+    private fun writeSettingsPermission() {
+        runCatching { startActivity(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:$packageName"))) }
+            .onFailure { model.error("Abre Acceso especial → Modificar ajustes y permite a Xylon cambiar brillo y rotación.") }
     }
     private fun defaultAssistant() {
         runCatching {
