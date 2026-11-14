@@ -140,6 +140,9 @@ class InstalledAppTest {
         device.executeShellCommand("appops set app.asistentepro.android SYSTEM_ALERT_WINDOW deny")
         device.executeShellCommand("cmd role add-role-holder android.app.role.ASSISTANT app.asistentepro.android")
         compose.waitUntil(10000) { android.service.voice.VoiceInteractionService.isActiveService(compose.activity, android.content.ComponentName(compose.activity, XylonVoiceService::class.java)) }
+        // The selected component is published before the system finishes binding.
+        // A real assist gesture is valid only after VoiceInteractionService.onReady.
+        compose.waitUntil(20000) { XylonVoiceService.isReady }
         device.pressHome(); device.waitForIdle()
         device.pressKeyCode(android.view.KeyEvent.KEYCODE_ASSIST)
         assertTrue("Assistant session did not show after the assist key", device.wait(Until.hasObject(By.text("Xylon")), 12000))

@@ -16,7 +16,14 @@ import android.widget.FrameLayout
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.*
 
-class XylonVoiceService : VoiceInteractionService()
+class XylonVoiceService : VoiceInteractionService() {
+    override fun onReady() { super.onReady(); isReady = true }
+    override fun onShutdown() { isReady = false; super.onShutdown() }
+    companion object {
+        @Volatile internal var isReady = false
+            private set
+    }
+}
 
 class XylonSessionService : VoiceInteractionSessionService() {
     override fun onNewSession(args: Bundle?): VoiceInteractionSession = XylonSession(this)

@@ -9,6 +9,8 @@ if [[ "$device_api" -ge 37 ]]; then
 fi
 collect_evidence() {
   adb logcat -d -b crash > "$report/crash-log.txt"
+  adb logcat -d -s VoiceInteractionManagerService VoiceInteractionService VoiceInteractionSession ActivityTaskManager WindowManager > "$report/assistant-system-log.txt"
+  adb shell dumpsys voiceinteraction > "$report/assistant-service-state.txt"
   adb pull /sdcard/Pictures/AsistenteProVerification "$report/screenshots" || true
 }
 trap collect_evidence EXIT
