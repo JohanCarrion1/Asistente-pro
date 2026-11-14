@@ -106,6 +106,9 @@ que el volumen cambie realmente con Manos libres activo. El micrófono de ese mo
 inicia con la app visible, dentro de un servicio de primer plano de tipo microphone.
 La compatibilidad de ejecución en Android 17 se prueba manteniendo compileSdk/targetSdk 35;
 no se declara que la app use las nuevas APIs exclusivas del SDK 37.
+Los emuladores usan Command-line Tools 22 y se comprueba que el de Android 17 registre
+la plataforma real `android-37.0`; las herramientas antiguas del runner pueden generar
+por error `android-0` y provocar un fallo de SurfaceFlinger antes de instalar la app.
 
 ## Compilar
 

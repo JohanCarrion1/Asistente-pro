@@ -92,7 +92,18 @@ jobs:
           java-version: '17'
       - uses: android-actions/setup-android@v3
         with:
+          cmdline-tools-version: '15859902'
           packages: 'platform-tools'
+      - name: Usar Command-line Tools 22 también al crear los emuladores
+        run: |
+          tools_root="$ANDROID_HOME/cmdline-tools"
+          pinned_tools="$tools_root/15859902"
+          test -x "$pinned_tools/bin/avdmanager"
+          if [[ -d "$tools_root/latest" && ! -L "$tools_root/latest" ]]; then
+            mv "$tools_root/latest" "$tools_root/preinstalled-before-xylon"
+          fi
+          ln -sfn "$pinned_tools" "$tools_root/latest"
+          "$tools_root/latest/bin/sdkmanager" --version
       - uses: actions/download-artifact@v4
         with:
           name: xylon-build-bundle
@@ -119,6 +130,7 @@ jobs:
           heap-size: '512'
           disk-size: '8G'
           disable-animations: true
+          pre-emulator-launch-script: bash ci/verify-avd.sh '${{ matrix.api }}'
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back none
           script: bash ci/android-device-check.sh
       - name: Guardar pruebas y capturas de Android ${{ matrix.android }}
