@@ -39,6 +39,7 @@ class AssistantEngine(application: Application) {
     fun page(value: Page) { mutable.update { it.copy(page = value, error = null, notice = null, keyDraft = "") } }
     fun phase(value: VoicePhase) { mutable.update { it.copy(phase = value) } }
     fun error(value: String) { mutable.update { it.copy(error = value, phase = VoicePhase.Idle) } }
+    fun notice(value: String) { mutable.update { it.copy(notice = value) } }
     fun dismissError() { mutable.update { it.copy(error = null, notice = null) } }
     fun toggleReading(value: Boolean) { store.readAloud = value; mutable.update { it.copy(readAloud = value) } }
     fun model(value: String) { store.model = value; mutable.update { it.copy(model = value) } }

@@ -50,7 +50,7 @@ class AureaSession(context: android.content.Context) : VoiceInteractionSession(c
         if (!SpeechRecognizer.isRecognitionAvailable(context)) { runtime.engine.error("Activa Manos libres en Aurea para usar el reconocimiento local sin un servicio de voz del sistema."); return }
         if (HandsFreeService.active != null) { HandsFreeService.active?.listenNow(); return }
         speech?.destroy(); runtime.stopSpeaking()
-        speech = SpeechRecognizer.createSpeechRecognizer(context).apply {
+        speech = SpeechRecognizer.createSpeechRecognizer(context, android.content.ComponentName(context, AureaRecognitionService::class.java)).apply {
             setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) { runtime.engine.phase(VoicePhase.Listening) }
                 override fun onBeginningOfSpeech() = Unit

@@ -55,8 +55,8 @@ para abrir aplicaciones. La activación depende de reconocer la palabra en espa�
 fallar con ruido o pronunciaciones distintas. No tiene acceso al procesador de activación
 exclusivo del fabricante ni sustituye las funciones privilegiadas de Siri/Bixby.
 
-El botón del micrófono dentro de la app y el gesto de asistencia también pueden utilizar
-el servicio de reconocimiento elegido en Android. Alarmas, mensajes y otras acciones
+El botón del micrófono dentro de la app y el gesto de asistencia utilizan el mismo
+reconocimiento local, mediante el protocolo de voz de Android. Alarmas, mensajes y otras acciones
 se abren en las apps del sistema con las confirmaciones que Android requiera.
 
 ## Privacidad

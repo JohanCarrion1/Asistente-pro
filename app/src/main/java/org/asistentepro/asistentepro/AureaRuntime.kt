@@ -40,7 +40,7 @@ class AureaRuntime private constructor(context: Context) {
                 })
                 val queued = pending; pending = null
                 if (ready && queued != null) speak(queued)
-                else if (!ready) engine.error("Instala una voz en español en los ajustes de texto a voz de Android. La respuesta aparece en pantalla.")
+                else if (!ready) { engine.phase(VoicePhase.Idle); engine.notice("Instala una voz en español en los ajustes de texto a voz de Android. La respuesta aparece en pantalla.") }
             } }
         } else if (ready) {
             engine.phase(VoicePhase.Speaking)

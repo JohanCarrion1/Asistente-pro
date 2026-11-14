@@ -78,7 +78,7 @@ import androidx.compose.ui.unit.sp
         item { AssistantCard {
             Icon(Icons.Outlined.Security, null, tint = Mint, modifier = Modifier.size(26.dp))
             Text("Tu privacidad importa.", Modifier.padding(top = 14.dp), color = Cream, fontSize = 18.sp)
-            Text("Las claves se cifran con Android Keystore y el historial se guarda en este dispositivo. Solo el proveedor elegido recibe el contexto del chat al consultar la IA. La escucha de Manos libres procesa audio localmente y no guarda grabaciones. El micrófono normal utiliza el servicio de voz de Android. La superposición no lee ni captura la pantalla de otras apps.", Modifier.padding(top = 12.dp), color = Muted, fontSize = 12.sp, lineHeight = 21.sp)
+            Text("Las claves se cifran con Android Keystore y el historial se guarda en este dispositivo. Solo el proveedor elegido recibe el contexto del chat al consultar la IA. El reconocimiento de voz utiliza el modelo local y no guarda grabaciones. La superposición no lee ni captura la pantalla de otras apps.", Modifier.padding(top = 12.dp), color = Muted, fontSize = 12.sp, lineHeight = 21.sp)
             TextButton(onClick = { clear = true }, enabled = state.conversations.isNotEmpty()) { Text("Borrar historial de este dispositivo", fontSize = 12.sp) }
         } }
         item { Text("AUREA  ·  4.0.0\nInteligencia a tu manera.", color = Muted, fontSize = 11.sp, lineHeight = 20.sp, modifier = Modifier.padding(horizontal = 6.dp, vertical = 10.dp)) }

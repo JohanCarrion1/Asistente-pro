@@ -137,11 +137,11 @@ class InstalledAppTest {
         device.executeShellCommand("cmd role add-role-holder android.app.role.ASSISTANT app.asistentepro.android")
         compose.waitUntil(10000) { android.service.voice.VoiceInteractionService.isActiveService(compose.activity, android.content.ComponentName(compose.activity, AureaVoiceService::class.java)) }
         device.pressHome(); device.waitForIdle()
-        val result = device.executeShellCommand("cmd voiceinteraction show")
-        assertTrue("Assistant session did not show: $result", device.wait(Until.hasObject(By.text("Aurea")), 12000))
+        device.pressKeyCode(android.view.KeyEvent.KEYCODE_ASSIST)
+        assertTrue("Assistant session did not show after the assist key", device.wait(Until.hasObject(By.text("Aurea")), 12000))
         assertTrue(device.hasObject(By.text("Hablar")))
         capture("08-asistente-del-sistema")
-        device.executeShellCommand("cmd voiceinteraction hide")
+        device.findObject(By.desc("Cerrar superposición"))?.click()
         device.executeShellCommand("cmd role remove-role-holder android.app.role.ASSISTANT app.asistentepro.android")
         compose.activity.startActivity(Intent(compose.activity, MainActivity::class.java))
     }
@@ -157,5 +157,32 @@ class InstalledAppTest {
             assertEquals("", store.apiKey(AiProvider.Gemini))
             store.deleteKey()
         }
+    }
+    @Test fun localRecognizerBindsThroughAndroidSpeechProtocol() {
+        val device = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
+        device.executeShellCommand("pm grant app.asistentepro.android android.permission.RECORD_AUDIO")
+        val ready = CountDownLatch(1)
+        val failure = java.util.concurrent.atomic.AtomicInteger(0)
+        var speech: android.speech.SpeechRecognizer? = null
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            speech = android.speech.SpeechRecognizer.createSpeechRecognizer(compose.activity, android.content.ComponentName(compose.activity, AureaRecognitionService::class.java)).apply {
+                setRecognitionListener(object : android.speech.RecognitionListener {
+                    override fun onReadyForSpeech(params: android.os.Bundle?) { ready.countDown() }
+                    override fun onBeginningOfSpeech() = Unit
+                    override fun onRmsChanged(rmsdB: Float) = Unit
+                    override fun onBufferReceived(buffer: ByteArray?) = Unit
+                    override fun onEndOfSpeech() = Unit
+                    override fun onError(error: Int) { failure.set(error); ready.countDown() }
+                    override fun onResults(results: android.os.Bundle?) = Unit
+                    override fun onPartialResults(partialResults: android.os.Bundle?) = Unit
+                    override fun onEvent(eventType: Int, params: android.os.Bundle?) = Unit
+                })
+                startListening(Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH))
+            }
+        }
+        try {
+            assertTrue("Local speech service did not become ready", ready.await(45, TimeUnit.SECONDS))
+            assertEquals("Speech protocol returned an error", 0, failure.get())
+        } finally { InstrumentationRegistry.getInstrumentation().runOnMainSync { speech?.destroy() } }
     }
 }

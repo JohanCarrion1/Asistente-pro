@@ -111,7 +111,7 @@ class MainActivity : ComponentActivity() {
     private fun listen() {
         if (!SpeechRecognizer.isRecognitionAvailable(this)) { model.error("Activa Manos libres en Ajustes para usar la voz local, o instala un servicio de voz de Android."); return }
         recognizer?.destroy(); val current = ++generation
-        recognizer = SpeechRecognizer.createSpeechRecognizer(this).apply {
+        recognizer = SpeechRecognizer.createSpeechRecognizer(this, ComponentName(this, AureaRecognitionService::class.java)).apply {
             setRecognitionListener(object : RecognitionListener {
                 override fun onReadyForSpeech(params: Bundle?) { if (current == generation) model.phase(VoicePhase.Listening) }
                 override fun onBeginningOfSpeech() = Unit
