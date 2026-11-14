@@ -23,7 +23,9 @@
         android:supportsRtl="true" android:usesCleartextTraffic="false"
         android:theme="@style/Theme.AsistentePro">
         <service android:name=".HandsFreeService" android:exported="false" android:foregroundServiceType="microphone" />
-        <service android:name=".AureaRecognitionService" android:exported="true" android:permission="android.permission.BIND_RECOGNITION_SERVICE">
+        <!-- Android 11 requires a real Binder caller for microphone delivery;
+             a recognizer in the caller's process fails its permission check. -->
+        <service android:name=".AureaRecognitionService" android:process=":recognition" android:exported="true" android:permission="android.permission.BIND_RECOGNITION_SERVICE">
             <intent-filter><action android:name="android.speech.RecognitionService" /></intent-filter>
             <meta-data android:name="android.speech" android:resource="@xml/recognition_service" />
         </service>
